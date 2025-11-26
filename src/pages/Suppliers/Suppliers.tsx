@@ -1,0 +1,334 @@
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Table, Input } from '../../components/ui';
+import { supabase } from '../../lib/supabase';
+import toast, { Toaster } from 'react-hot-toast';
+
+interface Supplier {
+  id: number;
+  supplier_id: string;
+  name: string;
+  phone: string;
+  speciality: string;
+}
+
+import { Link } from 'react-router-dom';
+
+export const Suppliers: React.FC = () => {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentId, setCurrentId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({ 
+    supplier_id: '', 
+    name: '', 
+    phone: '',
+    speciality: ''
+  });
+  const [showForm, setShowForm] = useState(false);
+
+  // Generate next supplier ID
+  const generateNextId = () => {
+    if (suppliers.length === 0) return 'S001';
+    
+    // Filter suppliers with valid format (S + numbers)
+    const validIds = suppliers
+      .map(s => s.supplier_id)
+      .filter(id => /^S\d+$/.test(id))
+      .map(id => parseInt(id.substring(1)))
+      .filter(num => !isNaN(num));
+    
+    // If no valid IDs found, start from 1
+    if (validIds.length === 0) return 'S001';
+    
+    // Find the maximum ID and increment
+    const maxId = Math.max(...validIds);
+    const nextNum = maxId + 1;
+    return 'S' + nextNum.toString().padStart(3, '0');
+  };
+
+  // Fetch suppliers from Supabase
+  const fetchSuppliers = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('suppliers')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (fetchError) throw fetchError;
+      
+      setSuppliers(data || []);
+    } catch (err: any) {
+      toast.error('فشل في تحميل البيانات: ' + err.message);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  // Open form for new supplier
+  const handleOpenForm = () => {
+    setShowForm(true);
+    if (!isEditing) {
+      setFormData({
+        supplier_id: generateNextId(),
+        name: '',
+        phone: '',
+        speciality: ''
+      });
+    }
+  };
+
+  // Add or update supplier
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.supplier_id.trim() || !formData.name.trim()) {
+      toast.error('كود المورد واسم المورد مطلوبان');
+      return;
+    }
+
+    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
+
+    try {
+      if (isEditing && currentId !== null) {
+        // Update existing supplier
+        const { error: updateError } = await supabase
+          .from('suppliers')
+          .update({
+            name: formData.name,
+            phone: formData.phone || null,
+            speciality: formData.speciality || null,
+          })
+          .eq('id', currentId);
+
+        if (updateError) throw updateError;
+        
+        toast.success('تم تحديث بيانات المورد بنجاح', { id: loadingToast });
+      } else {
+        // Insert new supplier
+        const { error: insertError } = await supabase
+          .from('suppliers')
+          .insert([{
+            supplier_id: formData.supplier_id.trim(),
+            name: formData.name,
+            phone: formData.phone || null,
+            speciality: formData.speciality || null,
+          }]);
+
+        if (insertError) {
+          if (insertError.code === '23505') {
+            toast.error(`كود المورد "${formData.supplier_id}" موجود بالفعل. جرب كوداً آخر.`, { id: loadingToast, duration: 4000 });
+          } else {
+            throw insertError;
+          }
+          return;
+        }
+        
+        toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
+      }
+
+      // Reset form and refresh data
+      setFormData({ supplier_id: '', name: '', phone: '', speciality: '' });
+      setShowForm(false);
+      setIsEditing(false);
+      setCurrentId(null);
+      await fetchSuppliers();
+    } catch (err: any) {
+      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
+      console.error(err);
+    }
+  };
+
+  // Edit supplier
+  const handleEdit = (supplier: Supplier) => {
+    setIsEditing(true);
+    setCurrentId(supplier.id);
+    setFormData({
+      supplier_id: supplier.supplier_id,
+      name: supplier.name,
+      phone: supplier.phone || '',
+      speciality: supplier.speciality || '',
+    });
+    setShowForm(true);
+  };
+
+  // Delete supplier
+  const handleDelete = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المورد؟')) return;
+
+    const loadingToast = toast.loading('جاري الحذف...');
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast.success('تم حذف المورد بنجاح', { id: loadingToast });
+      await fetchSuppliers();
+    } catch (err: any) {
+      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+      console.error(err);
+    }
+  };
+
+  // Cancel form
+  const handleCancel = () => {
+    setFormData({ supplier_id: '', name: '', phone: '', speciality: '' });
+    setShowForm(false);
+    setIsEditing(false);
+    setCurrentId(null);
+  };
+
+  // Table columns
+  const columns = [
+    { key: 'supplier_id', label: 'كود المورد', header: 'كود المورد' },
+    { 
+      key: 'name', 
+      label: 'اسم المورد', 
+      header: 'اسم المورد',
+      render: (supplier: Supplier) => (
+        <Link 
+          to={`/suppliers/${supplier.supplier_id}`}
+          className="text-blue-600 hover:underline font-medium"
+        >
+          {supplier.name}
+        </Link>
+      )
+    },
+    { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
+    { key: 'speciality', label: 'التخصص', header: 'التخصص' },
+    {
+      key: 'actions',
+      label: 'الإجراءات',
+      header: 'الإجراءات',
+      render: (supplier: Supplier) => (
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleEdit(supplier)}
+          >
+            تعديل
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => handleDelete(supplier.id)}
+          >
+            حذف
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Toaster 
+        position="top-center" 
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            fontSize: '14px',
+            direction: 'rtl',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+            duration: 4000,
+          },
+        }}
+      />
+      
+      <div className="space-y-6">
+        <Card
+          title="إدارة الموردين"
+          headerAction={
+            <Button onClick={() => {
+              if (!showForm) handleOpenForm();
+              else setShowForm(false);
+            }}>
+              {showForm ? 'إخفاء النموذج' : 'إضافة مورد جديد'}
+            </Button>
+          }
+        >
+          {showForm && (
+            <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">
+                {isEditing ? 'تعديل مورد' : 'إضافة مورد جديد'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="كود المورد *"
+                  value={formData.supplier_id}
+                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+                  disabled={isEditing}
+                  placeholder="مثال: S001"
+                  helperText={isEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
+                  required
+                />
+                <Input
+                  label="اسم المورد *"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="اسم الشركة أو الشخص"
+                  required
+                />
+                <Input
+                  label="رقم الهاتف"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="01XXXXXXXXX"
+                />
+                <Input
+                  label="التخصص"
+                  value={formData.speciality}
+                  onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
+                  placeholder="مثال: أدوات مكتبية، صيانة"
+                />
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button type="submit">
+                  {isEditing ? 'تحديث' : 'إضافة'}
+                </Button>
+                <Button type="button" variant="secondary" onClick={handleCancel}>
+                  إلغاء
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {isLoading ? (
+            <div className="text-center py-8">جاري التحميل...</div>
+          ) : (
+            <Table
+              columns={columns}
+              data={suppliers}
+              emptyMessage="لا يوجد موردين"
+            />
+          )}
+        </Card>
+      </div>
+    </>
+  );
+};
