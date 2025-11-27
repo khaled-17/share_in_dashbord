@@ -1,5 +1,7 @@
 {
   "name": "share-in-app",
+  "homepage": "https://khaled-17.github.io/share_in_dashbord",
+
   "private": true,
   "version": "0.0.0",
   "type": "module",
