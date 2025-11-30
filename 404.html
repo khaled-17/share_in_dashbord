@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Share In Dashboard - Redirecting...</title>
+    <script>
+        // GitHub Pages SPA redirect fix
+        // This script saves the current path and redirects to index.html
+        // The index.html will then restore the correct path
+        sessionStorage.redirect = location.href;
+
+        // Redirect to the base path
+        var baseUrl = '/share_in_dashbord/';
+        location.replace(baseUrl);
+    </script>
+</head>
+
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>جاري إعادة التوجيه...</h2>
+        <p>Redirecting...</p>
+    </div>
+</body>
+
+</html>
