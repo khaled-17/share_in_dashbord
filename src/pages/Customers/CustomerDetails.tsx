@@ -163,7 +163,7 @@ export const CustomerDetails: React.FC = () => {
             <p className="text-2xl font-bold text-green-800">{formatAmount(totalRevenue)}</p>
           </div>
         </div>
-
+ 
         <h3 className="text-lg font-semibold mb-4">سجل العمليات</h3>
         <Table
           columns={columns}

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, Button, Table } from '../../components/ui';
+import { supabase } from '../../lib/supabase';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Voucher {
   id: number;
@@ -13,73 +16,93 @@ interface Voucher {
 }
 
 export const Vouchers: React.FC = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'payment' | 'receipt'>('payment');
-  
-  const paymentVouchers: Voucher[] = [
-    {
-      id: 1,
-      voucherNumber: 'PAY-001',
-      date: '2025-11-25',
-      recipient: 'شركة المواد الخام',
-      amount: 8500,
-      description: 'شراء مواد خام',
-      paymentMethod: 'نقدي',
-      status: 'مدفوع',
-    },
-    {
-      id: 2,
-      voucherNumber: 'PAY-002',
-      date: '2025-11-22',
-      recipient: 'موظفين الشركة',
-      amount: 12000,
-      description: 'رواتب شهر نوفمبر',
-      paymentMethod: 'تحويل بنكي',
-      status: 'مدفوع',
-    },
-    {
-      id: 3,
-      voucherNumber: 'PAY-003',
-      date: '2025-11-20',
-      recipient: 'شركة الكهرباء',
-      amount: 3500,
-      description: 'فاتورة كهرباء',
-      paymentMethod: 'نقدي',
-      status: 'معلق',
-    },
-  ];
+  const [paymentVouchers, setPaymentVouchers] = useState<Voucher[]>([]);
+  const [receiptVouchers, setReceiptVouchers] = useState<Voucher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const receiptVouchers: Voucher[] = [
-    {
-      id: 1,
-      voucherNumber: 'REC-001',
-      date: '2025-11-25',
-      recipient: 'أحمد محمد',
-      amount: 15000,
-      description: 'دفعة مقدمة - مشروع A',
-      paymentMethod: 'تحويل بنكي',
-      status: 'مدفوع',
-    },
-    {
-      id: 2,
-      voucherNumber: 'REC-002',
-      date: '2025-11-23',
-      recipient: 'محمود علي',
-      amount: 22000,
-      description: 'دفعة نهائية - مشروع B',
-      paymentMethod: 'شيك',
-      status: 'مدفوع',
-    },
-    {
-      id: 3,
-      voucherNumber: 'REC-003',
-      date: '2025-11-21',
-      recipient: 'سارة أحمد',
-      amount: 18000,
-      description: 'دفعة مقدمة - مشروع C',
-      paymentMethod: 'نقدي',
-      status: 'مدفوع',
-    },
-  ];
+  // Set active tab based on URL path
+  useEffect(() => {
+    if (location.pathname === '/receipt-vouchers') {
+      setActiveTab('receipt');
+    } else if (location.pathname === '/payment-vouchers') {
+      setActiveTab('payment');
+    }
+  }, [location.pathname]);
+
+  // Fetch vouchers data from Supabase
+  const fetchVouchers = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch expenses (payment vouchers)
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select(`
+          id,
+          exp_date,
+          amount,
+          receipt_no,
+          notes,
+          suppliers (name)
+        `)
+        .order('exp_date', { ascending: false });
+
+      if (expensesError) throw expensesError;
+
+      // Transform expenses to vouchers format
+      const payments: Voucher[] = (expensesData || []).map((expense) => ({
+        id: expense.id,
+        voucherNumber: `PAY-${String(expense.id).padStart(3, '0')}`,
+        date: expense.exp_date,
+        recipient: (expense.suppliers as any)?.name || 'غير محدد',
+        amount: expense.amount,
+        description: expense.notes || 'مصروف',
+        paymentMethod: expense.receipt_no ? 'شيك/تحويل' : 'نقدي',
+        status: 'مدفوع',
+      }));
+
+      // Fetch revenue (receipt vouchers)
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('revenue')
+        .select(`
+          id,
+          rev_date,
+          amount,
+          receipt_no,
+          notes,
+          customers (name)
+        `)
+        .order('rev_date', { ascending: false });
+
+      if (revenueError) throw revenueError;
+
+      // Transform revenue to vouchers format
+      const receipts: Voucher[] = (revenueData || []).map((revenue) => ({
+        id: revenue.id,
+        voucherNumber: `REC-${String(revenue.id).padStart(3, '0')}`,
+        date: revenue.rev_date,
+        recipient: (revenue.customers as any)?.name || 'غير محدد',
+        amount: revenue.amount,
+        description: revenue.notes || 'إيراد',
+        paymentMethod: revenue.receipt_no ? 'شيك/تحويل' : 'نقدي',
+        status: 'مدفوع',
+      }));
+
+      setPaymentVouchers(payments);
+      setReceiptVouchers(receipts);
+    } catch (err: any) {
+      toast.error('فشل في تحميل البيانات: ' + err.message);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
 
   const columns = [
     {
@@ -92,6 +115,7 @@ export const Vouchers: React.FC = () => {
     {
       key: 'date',
       header: 'التاريخ',
+      render: (item: Voucher) => new Date(item.date).toLocaleDateString('ar-EG'),
     },
     {
       key: 'recipient',
@@ -118,13 +142,12 @@ export const Vouchers: React.FC = () => {
       key: 'status',
       header: 'الحالة',
       render: (item: Voucher) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          item.status === 'مدفوع' 
-            ? 'bg-green-100 text-green-700' 
-            : item.status === 'معلق'
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.status === 'مدفوع'
+          ? 'bg-green-100 text-green-700'
+          : item.status === 'معلق'
             ? 'bg-yellow-100 text-yellow-700'
             : 'bg-red-100 text-red-700'
-        }`}>
+          }`}>
           {item.status}
         </span>
       ),
@@ -132,7 +155,7 @@ export const Vouchers: React.FC = () => {
     {
       key: 'actions',
       header: 'الإجراءات',
-      render: (item: Voucher) => (
+      render: () => (
         <div className="flex gap-2">
           <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,97 +182,122 @@ export const Vouchers: React.FC = () => {
   const totalAmount = currentData.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">إجمالي {activeTab === 'payment' ? 'المصروفات' : 'المقبوضات'}</p>
-              <p className="text-3xl font-bold text-gray-900">{totalAmount.toLocaleString('ar-EG')} ج.م</p>
-            </div>
-            <div className={`p-4 rounded-full ${activeTab === 'payment' ? 'bg-red-100' : 'bg-green-100'}`}>
-              <svg className={`w-8 h-8 ${activeTab === 'payment' ? 'text-red-600' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </Card>
+    <>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            fontSize: '14px',
+            direction: 'rtl',
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+            duration: 4000,
+          },
+        }}
+      />
 
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">عدد السندات</p>
-              <p className="text-3xl font-bold text-gray-900">{currentData.length}</p>
+      <div className="space-y-6">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card hover>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">إجمالي {activeTab === 'payment' ? 'المصروفات' : 'المقبوضات'}</p>
+                <p className="text-3xl font-bold text-gray-900">{totalAmount.toLocaleString('ar-EG')} ج.م</p>
+              </div>
+              <div className={`p-4 rounded-full ${activeTab === 'payment' ? 'bg-red-100' : 'bg-green-100'}`}>
+                <svg className={`w-8 h-8 ${activeTab === 'payment' ? 'text-red-600' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
-            <div className="p-4 rounded-full bg-blue-100">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card hover>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">السندات المعلقة</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {currentData.filter(v => v.status === 'معلق').length}
-              </p>
+          <Card hover>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">عدد السندات</p>
+                <p className="text-3xl font-bold text-gray-900">{currentData.length}</p>
+              </div>
+              <div className="p-4 rounded-full bg-blue-100">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
             </div>
-            <div className="p-4 rounded-full bg-yellow-100">
-              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+          </Card>
+
+          <Card hover>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">السندات المعلقة</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {currentData.filter(v => v.status === 'معلق').length}
+                </p>
+              </div>
+              <div className="p-4 rounded-full bg-yellow-100">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Card>
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
-            <button
-              onClick={() => setActiveTab('payment')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                activeTab === 'payment'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              سندات الصرف
-            </button>
-            <button
-              onClick={() => setActiveTab('receipt')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                activeTab === 'receipt'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              سندات القبض
-            </button>
-          </div>
-
-          <Button variant="primary">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            سند جديد
-          </Button>
+          </Card>
         </div>
 
-        {/* Table */}
-        <Table
-          data={currentData}
-          columns={columns}
-          hoverable
-          striped
-        />
-      </Card>
-    </div>
+        {/* Main Content */}
+        <Card>
+          {/* Tabs */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+              <button
+                onClick={() => setActiveTab('payment')}
+                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'payment'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                سندات الصرف
+              </button>
+              <button
+                onClick={() => setActiveTab('receipt')}
+                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'receipt'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                سندات القبض
+              </button>
+            </div>
+
+            <Button variant="primary">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              سند جديد
+            </Button>
+          </div>
+
+          {/* Table */}
+          {isLoading ? (
+            <div className="text-center py-8">جاري التحميل...</div>
+          ) : (
+            <Table
+              data={currentData}
+              columns={columns}
+              hoverable
+              striped
+            />
+          )}
+        </Card>
+      </div>
+    </>
   );
 };
