@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '../ui';
 
 interface HeaderProps {
   title: string;
@@ -25,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, actions }) => {
               <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
             )}
           </div>
-          
+
           <div className="flex items-center gap-4">
             {/* Date Display */}
             <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
