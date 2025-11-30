@@ -8,9 +8,9 @@
 
     <!-- GitHub Pages SPA redirect -->
     <script>
-        // Store the current path and redirect to index.html
-        sessionStorage.setItem('redirect', window.location.pathname + window.location.search + window.location.hash);
-        window.location.replace('/share_in_dashbord/');
+        // Save the path and redirect to index
+        sessionStorage.setItem('path', location.pathname);
+        location.replace('/share_in_dashbord/');
     </script>
 </head>
 

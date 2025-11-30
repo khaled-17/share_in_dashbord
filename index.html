@@ -9,12 +9,12 @@
 
   <!-- GitHub Pages SPA redirect fix -->
   <script>
-    // Store the redirect path for GitHub Pages
+    // Restore the saved path
     (function () {
-      var redirect = sessionStorage.redirect;
-      delete sessionStorage.redirect;
-      if (redirect && redirect !== location.href) {
-        history.replaceState(null, null, redirect);
+      var path = sessionStorage.getItem('path');
+      if (path) {
+        sessionStorage.removeItem('path');
+        history.replaceState(null, null, path);
       }
     })();
   </script>
