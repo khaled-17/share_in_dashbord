@@ -4,23 +4,20 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Share In Dashboard - Redirecting...</title>
-    <script>
-        // GitHub Pages SPA redirect fix
-        // This script saves the current path and redirects to index.html
-        // The index.html will then restore the correct path
-        sessionStorage.redirect = location.href;
+    <title>Share-In Dashboard</title>
 
-        // Redirect to the base path
-        var baseUrl = '/share_in_dashbord/';
-        location.replace(baseUrl);
+    <!-- GitHub Pages SPA redirect -->
+    <script>
+        // Store the current path and redirect to index.html
+        sessionStorage.setItem('redirect', window.location.pathname + window.location.search + window.location.hash);
+        window.location.replace('/share_in_dashbord/');
     </script>
 </head>
 
 <body>
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-        <h2>جاري إعادة التوجيه...</h2>
-        <p>Redirecting...</p>
+        <h1>جاري التحميل...</h1>
+        <p>يتم إعادة توجيهك...</p>
     </div>
 </body>
 
