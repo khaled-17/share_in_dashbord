@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import { Dashboard } from './pages/Dashboard';
 
@@ -107,9 +107,9 @@ const RouteHandler = () => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <RouteHandler />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
