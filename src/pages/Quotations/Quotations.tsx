@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
 import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
@@ -27,7 +27,6 @@ interface Supplier {
 }
 
 export const Quotations: React.FC = () => {
-  const navigate = useNavigate();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -261,7 +260,7 @@ export const Quotations: React.FC = () => {
   };
 
   // Print quotation
-  const handlePrint = (item: Quotation) => {
+  const handlePrint = (_item: Quotation) => {
     toast('جاري تجهيز الطباعة...');
     // TODO: Implement print functionality
     setTimeout(() => {
@@ -312,7 +311,12 @@ export const Quotations: React.FC = () => {
       key: 'quotationNumber',
       header: 'رقم العرض',
       render: (item: Quotation) => (
-        <span className="font-mono font-semibold text-primary-600">{item.quotationNumber}</span>
+        <Link
+          to={`/quotations/${item.id}`}
+          className="font-mono font-semibold text-primary-600 hover:underline"
+        >
+          {item.quotationNumber}
+        </Link>
       ),
     },
     {
@@ -351,12 +355,12 @@ export const Quotations: React.FC = () => {
       header: 'الحالة',
       render: (item: Quotation) => (
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.status === 'مقبول'
-            ? 'bg-green-100 text-green-700'
-            : item.status === 'مرسل'
-              ? 'bg-blue-100 text-blue-700'
-              : item.status === 'مسودة'
-                ? 'bg-gray-100 text-gray-700'
-                : 'bg-red-100 text-red-700'
+          ? 'bg-green-100 text-green-700'
+          : item.status === 'مرسل'
+            ? 'bg-blue-100 text-blue-700'
+            : item.status === 'مسودة'
+              ? 'bg-gray-100 text-gray-700'
+              : 'bg-red-100 text-red-700'
           }`}>
           {item.status}
         </span>

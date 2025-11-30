@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import { Dashboard } from './pages/Dashboard';
 
-import { Quotations } from './pages/Quotations';
+import { Quotations, QuotationDetails } from './pages/Quotations';
 import { Reports } from './pages/Reports';
 
 import { Customers } from './pages/Customers';
@@ -84,6 +84,7 @@ const RouteHandler = () => {
         <Route path="/" element={<Dashboard />} />
 
         <Route path="/quotations" element={<Quotations />} />
+        <Route path="/quotations/:id" element={<QuotationDetails />} />
         <Route path="/reports" element={<Reports />} />
 
         <Route path="/customers" element={<Customers />} />
