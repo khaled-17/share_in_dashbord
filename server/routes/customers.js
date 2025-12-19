@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
     try {
         const customers = await prisma.customer.findMany({
-            orderBy: { customer_id: 'asc' }
+            orderBy: { name: 'asc' }
         });
         res.json(customers);
     } catch (error) {
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 // Create new customer
 router.post('/', async (req, res) => {
     try {
-        const { customer_id, name, phone, address } = req.body;
+        const { customer_id, name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
 
         // Check if ID exists
         const existing = await prisma.customer.findUnique({
@@ -28,14 +28,18 @@ router.post('/', async (req, res) => {
         });
 
         if (existing) {
-            return res.status(400).json({ error: 'Customer ID already exists' });
+            return res.status(400).json({ error: 'كود العميل موجود بالفعل' });
         }
 
         const newCustomer = await prisma.customer.create({
             data: {
                 customer_id,
                 name,
+                contact_person,
+                company_email,
+                contact_email,
                 phone,
+                secondary_phone,
                 address
             }
         });
@@ -43,7 +47,7 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('Error creating customer:', error);
         if (error.code === 'P2002') {
-            res.status(400).json({ error: 'Customer ID already exists' });
+            res.status(400).json({ error: 'كود العميل موجود بالفعل' });
         } else {
             res.status(500).json({ error: 'Failed to create customer' });
         }
@@ -54,13 +58,17 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, address } = req.body;
+        const { name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
 
         const updatedCustomer = await prisma.customer.update({
             where: { customer_id: id },
             data: {
                 name,
+                contact_person,
+                company_email,
+                contact_email,
                 phone,
+                secondary_phone,
                 address
             }
         });

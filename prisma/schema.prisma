@@ -30,24 +30,34 @@ model CustomerReview {
 // --- Main Operations Tables ---
 
 model Customer {
-  customer_id String    @id
-  name        String
-  phone       String?
-  address     String?
-  revenues    Revenue[]
-  quotations  Quotation[]
+  customer_id    String    @id
+  name           String    // Company Name
+  contact_person String?   // Person in Charge
+  company_email  String?
+  contact_email  String?
+  phone          String?
+  secondary_phone String?
+  address        String?
+  created_at     DateTime  @default(now())
+  revenues       Revenue[]
+  quotations     Quotation[]
+  work_orders    WorkOrder[]
 
   @@map("customers")
 }
 
 model Supplier {
-  id          Int       @id @default(autoincrement())
-  supplier_id String    @unique
-  name        String
-  phone       String?
-  speciality  String?
-  expenses    Expense[]
-  quotations  Quotation[]
+  id             Int       @id @default(autoincrement())
+  supplier_id    String    @unique
+  name           String    // Company Name
+  contact_person String?   // Owner or Person in Charge
+  email          String?
+  phone          String?
+  secondary_phone String?
+  address        String?
+  speciality     String?
+  created_at     DateTime  @default(now())
+  expenses       Expense[]
 
   @@map("suppliers")
 }
@@ -74,7 +84,7 @@ model RevenueType {
 
 model Revenue {
   id          Int         @id @default(autoincrement())
-  rev_date    String // Storing as string based on frontend usage (YYYY-MM-DD), or could use DateTime
+  rev_date    String
   amount      Float
   receipt_no  String?
   quote_id    Int?
@@ -90,7 +100,7 @@ model Revenue {
 
 model Expense {
   id          Int         @id @default(autoincrement())
-  exp_date    String // Storing as string to match existing data format
+  exp_date    String
   amount      Float
   receipt_no  String?
   quote_id    Int?
@@ -124,20 +134,48 @@ model Shareen {
 }
 
 model Quotation {
-  id            Int      @id @default(autoincrement())
-  customer_id   String
-  supplier_id   String?
-  event_name    String?
-  quote_date    String
-  delivery_date String?
-  totalamount   Float
-  paid_adv      Float?
-  adv_date      String?
-  receipt_no    String?
-  status        String   @default("مسودة")
+  id              Int             @id @default(autoincrement())
+  customer_id     String
+  project_type    String?         // نوع المشروع
+  project_manager String?         // المسؤول عن المشروع
+  project_name    String?         // اسم المشروع
+  quote_date      String
+  delivery_date   String?
+  totalamount     Float
+  paid_adv        Float?
+  adv_date        String?
+  receipt_no      String?
+  status          String          @default("مسودة")
   
-  customer      Customer @relation(fields: [customer_id], references: [customer_id])
-  supplier      Supplier? @relation(fields: [supplier_id], references: [supplier_id])
+  customer        Customer        @relation(fields: [customer_id], references: [customer_id])
+  items           QuotationItem[]
+  work_orders     WorkOrder[]
 
   @@map("quotations")
+}
+
+model QuotationItem {
+  id           Int       @id @default(autoincrement())
+  quotation_id Int
+  description  String
+  unit_price   Float
+  quantity     Float
+  total        Float
+  
+  quotation    Quotation @relation(fields: [quotation_id], references: [id], onDelete: Cascade)
+
+  @@map("quotation_items")
+}
+
+model WorkOrder {
+  id           Int       @id @default(autoincrement())
+  order_code   String    @unique
+  quotation_id Int
+  customer_id  String
+  created_at   DateTime  @default(now())
+
+  quotation    Quotation @relation(fields: [quotation_id], references: [id])
+  customer     Customer  @relation(fields: [customer_id], references: [customer_id])
+
+  @@map("work_orders")
 }

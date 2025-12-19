@@ -18,10 +18,18 @@ interface Quotation {
   itemsCount: number;
 }
 
+const projectTypeOptions = [
+  { value: 'ديجيتال ماركتنج', label: 'ديجيتال ماركتنج' },
+  { value: 'ميديا برودكشن', label: 'ميديا برودكشن' },
+  { value: 'تنظيم مناسبات', label: 'تنظيم مناسبات' },
+  { value: 'تنظيم مؤتمرات', label: 'تنظيم مؤتمرات' },
+  { value: 'طباعة بأنواعها', label: 'طباعة بأنواعها' },
+  { value: 'هدايا سنوية', label: 'هدايا سنوية' },
+];
+
 export const Quotations: React.FC = () => {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -29,30 +37,35 @@ export const Quotations: React.FC = () => {
 
   const [formData, setFormData] = useState({
     customer_id: '',
-    supplier_id: '',
-    event_name: '',
+    project_type: 'ديجيتال ماركتنج',
+    project_manager: '',
+    project_name: '',
     quote_date: new Date().toISOString().split('T')[0],
     delivery_date: '',
-    totalamount: '',
+    totalamount: '0',
     paid_adv: '',
     adv_date: '',
     receipt_no: '',
-    status: 'مسودة'
+    status: 'مسودة',
+    items: [{ description: '', unit_price: 0, quantity: 1, total: 0 }]
   });
+
+  // Calculate total whenever items change
+  useEffect(() => {
+    const total = formData.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+    setFormData(prev => ({ ...prev, totalamount: total.toString() }));
+  }, [formData.items]);
 
   // Fetch all data
   const fetchData = async () => {
     try {
       setIsLoading(true);
 
-      // Fetch quotations, customers and suppliers in parallel
-      const [quotationsData, customersData, suppliersData] = await Promise.all([
+      const [quotationsData, customersData] = await Promise.all([
         quotationService.getAll(),
-        customerService.getAll(),
-        supplierService.getAll()
+        customerService.getAll()
       ]);
 
-      // Transform quotations data
       const transformedData: Quotation[] = (quotationsData || []).map(item => ({
         id: item.id,
         quotationNumber: `QUO-${String(item.id).padStart(4, '0')}`,
@@ -62,12 +75,11 @@ export const Quotations: React.FC = () => {
         totalAmount: item.totalamount || 0,
         status: item.status || 'مسودة',
         validUntil: item.delivery_date || '',
-        itemsCount: 0,
+        itemsCount: item.items?.length || 0,
       }));
 
       setQuotations(transformedData);
       setCustomers(customersData || []);
-      setSuppliers(suppliersData || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
       console.error(err);
@@ -80,21 +92,45 @@ export const Quotations: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleAddItem = () => {
+    setFormData({
+      ...formData,
+      items: [...formData.items, { description: '', unit_price: 0, quantity: 1, total: 0 }]
+    });
+  };
+
+  const handleUpdateItem = (index: number, field: string, value: any) => {
+    const newItems = [...formData.items];
+    (newItems[index] as any)[field] = value;
+    if (field === 'unit_price' || field === 'quantity') {
+      newItems[index].total = newItems[index].unit_price * newItems[index].quantity;
+    }
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (formData.items.length === 1) return;
+    const newItems = formData.items.filter((_, i) => i !== index);
+    setFormData({ ...formData, items: newItems });
+  };
+
   // Open form for new quotation
   const handleOpenForm = () => {
     setShowForm(true);
     if (!isEditing) {
       setFormData({
         customer_id: customers.length > 0 ? customers[0].customer_id : '',
-        supplier_id: suppliers.length > 0 ? suppliers[0].supplier_id : '',
-        event_name: '',
+        project_type: 'ديجيتال ماركتنج',
+        project_manager: '',
+        project_name: '',
         quote_date: new Date().toISOString().split('T')[0],
         delivery_date: '',
-        totalamount: '',
+        totalamount: '0',
         paid_adv: '',
         adv_date: '',
         receipt_no: '',
-        status: 'مسودة'
+        status: 'مسودة',
+        items: [{ description: '', unit_price: 0, quantity: 1, total: 0 }]
       });
     }
   };
@@ -103,24 +139,21 @@ export const Quotations: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.customer_id || !formData.totalamount) {
-      toast.error('العميل والمبلغ الإجمالي مطلوبان');
+    if (!formData.customer_id || !formData.project_name) {
+      toast.error('العميل واسم المشروع مطلوبان');
       return;
     }
 
     const totalAmount = parseFloat(formData.totalamount);
-    if (isNaN(totalAmount) || totalAmount <= 0) {
-      toast.error('المبلغ يجب أن يكون رقماً موجباً');
-      return;
-    }
 
     const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
 
     try {
       const dataToSubmit = {
         customer_id: formData.customer_id,
-        supplier_id: formData.supplier_id || null,
-        event_name: formData.event_name || null,
+        project_type: formData.project_type,
+        project_manager: formData.project_manager,
+        project_name: formData.project_name,
         quote_date: formData.quote_date,
         delivery_date: formData.delivery_date || null,
         totalamount: totalAmount,
@@ -128,6 +161,12 @@ export const Quotations: React.FC = () => {
         adv_date: formData.adv_date || null,
         receipt_no: formData.receipt_no || null,
         status: formData.status,
+        items: formData.items.map(item => ({
+          description: item.description,
+          unit_price: parseFloat(item.unit_price.toString()),
+          quantity: parseFloat(item.quantity.toString()),
+          total: parseFloat(item.total.toString())
+        }))
       };
 
       if (isEditing && currentId !== null) {
@@ -138,21 +177,7 @@ export const Quotations: React.FC = () => {
         toast.success('تم إضافة عرض السعر بنجاح', { id: loadingToast });
       }
 
-      setShowForm(false);
-      setIsEditing(false);
-      setCurrentId(null);
-      setFormData({
-        customer_id: customers[0]?.customer_id || '',
-        supplier_id: suppliers[0]?.supplier_id || '',
-        event_name: '',
-        quote_date: new Date().toISOString().split('T')[0],
-        delivery_date: '',
-        totalamount: '',
-        paid_adv: '',
-        adv_date: '',
-        receipt_no: '',
-        status: 'مسودة'
-      });
+      handleCancel();
       await fetchData();
     } catch (err: any) {
       toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
@@ -169,15 +194,24 @@ export const Quotations: React.FC = () => {
       setCurrentId(id);
       setFormData({
         customer_id: data.customer_id || '',
-        supplier_id: data.supplier_id || '',
-        event_name: data.event_name || '',
+        project_type: data.project_type || 'ديجيتال ماركتنج',
+        project_manager: data.project_manager || '',
+        project_name: data.project_name || '',
         quote_date: data.quote_date || '',
         delivery_date: data.delivery_date || '',
-        totalamount: data.totalamount?.toString() || '',
+        totalamount: data.totalamount?.toString() || '0',
         paid_adv: data.paid_adv?.toString() || '',
         adv_date: data.adv_date || '',
         receipt_no: data.receipt_no || '',
-        status: data.status || 'مسودة'
+        status: data.status || 'مسودة',
+        items: data.items && data.items.length > 0
+          ? data.items.map(item => ({
+            description: item.description,
+            unit_price: item.unit_price,
+            quantity: item.quantity,
+            total: item.total
+          }))
+          : [{ description: '', unit_price: 0, quantity: 1, total: 0 }]
       });
       setShowForm(true);
     } catch (err: any) {
@@ -202,35 +236,6 @@ export const Quotations: React.FC = () => {
     }
   };
 
-  // View quotation details
-  const handleView = (item: Quotation) => {
-    // For now, show details in a toast
-    toast(`عرض السعر: ${item.quotationNumber}\nالعميل: ${item.clientName}\nالمبلغ: ${item.totalAmount} ج.م\nالحالة: ${item.status}`);
-  };
-
-  // Print quotation
-  const handlePrint = (_item: Quotation) => {
-    toast('جاري تجهيز الطباعة...');
-    // TODO: Implement print functionality
-    setTimeout(() => {
-      toast.success('يمكنك الآن طباعة عرض السعر');
-    }, 1000);
-  };
-
-  // Send quotation
-  const handleSend = async (id: number) => {
-    const loadingToast = toast.loading('جاري إرسال عرض السعر...');
-
-    try {
-      await quotationService.update(id, { status: 'مرسل' });
-
-      toast.success('تم إرسال عرض السعر بنجاح', { id: loadingToast });
-      await fetchData();
-    } catch (err: any) {
-      toast.error('فشل في إرسال عرض السعر: ' + err.message, { id: loadingToast });
-    }
-  };
-
   // Cancel form
   const handleCancel = () => {
     setShowForm(false);
@@ -238,15 +243,17 @@ export const Quotations: React.FC = () => {
     setCurrentId(null);
     setFormData({
       customer_id: customers[0]?.customer_id || '',
-      supplier_id: suppliers[0]?.supplier_id || '',
-      event_name: '',
+      project_type: 'ديجيتال ماركتنج',
+      project_manager: '',
+      project_name: '',
       quote_date: new Date().toISOString().split('T')[0],
       delivery_date: '',
-      totalamount: '',
+      totalamount: '0',
       paid_adv: '',
       adv_date: '',
       receipt_no: '',
-      status: 'مسودة'
+      status: 'مسودة',
+      items: [{ description: '', unit_price: 0, quantity: 1, total: 0 }]
     });
   };
 
@@ -316,16 +323,6 @@ export const Quotations: React.FC = () => {
       render: (item: Quotation) => (
         <div className="flex gap-2">
           <button
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="عرض"
-            onClick={() => handleView(item)}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
-          <button
             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
             title="تعديل"
             onClick={() => handleEdit(item.id)}
@@ -337,19 +334,10 @@ export const Quotations: React.FC = () => {
           <button
             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
             title="طباعة"
-            onClick={() => handlePrint(item)}
+            onClick={() => { }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-          </button>
-          <button
-            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-            title="إرسال"
-            onClick={() => handleSend(item.id)}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </button>
           <button
@@ -374,8 +362,7 @@ export const Quotations: React.FC = () => {
     totalValue: quotations.reduce((sum, q) => sum + q.totalAmount, 0),
   };
 
-  const customerOptions = customers.map(c => ({ value: c.customer_id, label: c.name }));
-  const supplierOptions = suppliers.map(s => ({ value: s.supplier_id, label: s.name }));
+  const customerOptions = customers.map(c => ({ value: c.customer_id, label: `${c.name} (${c.customer_id})` }));
   const statusOptions = [
     { value: 'مسودة', label: 'مسودة' },
     { value: 'مرسل', label: 'مرسل' },
@@ -385,28 +372,9 @@ export const Quotations: React.FC = () => {
 
   return (
     <>
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-            fontSize: '14px',
-            direction: 'rtl',
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-            duration: 4000,
-          },
-        }}
-      />
+      <Toaster position="top-center" />
 
-      <div className="space-y-6">
+      <div className="space-y-6 text-right" dir="rtl">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card hover>
@@ -451,7 +419,6 @@ export const Quotations: React.FC = () => {
         {/* Main Content */}
         <Card
           title="عروض الأسعار"
-          subtitle="إدارة ومتابعة جميع عروض الأسعار المقدمة للعملاء"
           headerAction={
             <Button
               variant="primary"
@@ -460,19 +427,17 @@ export const Quotations: React.FC = () => {
                 else setShowForm(false);
               }}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
               {showForm ? 'إخفاء النموذج' : 'عرض سعر جديد'}
             </Button>
           }
         >
           {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">
+            <form onSubmit={handleSubmit} className="mb-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
+              <h3 className="text-xl font-bold mb-6 border-b pb-2">
                 {isEditing ? 'تعديل عرض سعر' : 'إضافة عرض سعر جديد'}
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <Select
                   label="العميل *"
                   value={formData.customer_id}
@@ -481,16 +446,24 @@ export const Quotations: React.FC = () => {
                   required
                 />
                 <Select
-                  label="المورد"
-                  value={formData.supplier_id}
-                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                  options={supplierOptions}
+                  label="نوع المشروع *"
+                  value={formData.project_type}
+                  onChange={(e) => setFormData({ ...formData, project_type: e.target.value })}
+                  options={projectTypeOptions}
+                  required
                 />
                 <Input
-                  label="اسم المناسبة"
-                  value={formData.event_name}
-                  onChange={(e) => setFormData({ ...formData, event_name: e.target.value })}
-                  placeholder="مثال: حفل زفاف"
+                  label="المسؤول عن المشروع"
+                  value={formData.project_manager}
+                  onChange={(e) => setFormData({ ...formData, project_manager: e.target.value })}
+                  placeholder="اسم الشخص المسؤول"
+                />
+                <Input
+                  label="اسم المشروع *"
+                  value={formData.project_name}
+                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                  placeholder="مثال: تصوير حملة الشتاء"
+                  required
                 />
                 <Input
                   label="تاريخ العرض *"
@@ -505,35 +478,6 @@ export const Quotations: React.FC = () => {
                   value={formData.delivery_date}
                   onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
                 />
-                <Input
-                  label="المبلغ الإجمالي *"
-                  type="number"
-                  step="0.01"
-                  value={formData.totalamount}
-                  onChange={(e) => setFormData({ ...formData, totalamount: e.target.value })}
-                  placeholder="0.00"
-                  required
-                />
-                <Input
-                  label="المبلغ المدفوع مقدماً"
-                  type="number"
-                  step="0.01"
-                  value={formData.paid_adv}
-                  onChange={(e) => setFormData({ ...formData, paid_adv: e.target.value })}
-                  placeholder="0.00"
-                />
-                <Input
-                  label="تاريخ الدفعة المقدمة"
-                  type="date"
-                  value={formData.adv_date}
-                  onChange={(e) => setFormData({ ...formData, adv_date: e.target.value })}
-                />
-                <Input
-                  label="رقم الإيصال"
-                  value={formData.receipt_no}
-                  onChange={(e) => setFormData({ ...formData, receipt_no: e.target.value })}
-                  placeholder="اختياري"
-                />
                 <Select
                   label="الحالة"
                   value={formData.status}
@@ -541,11 +485,94 @@ export const Quotations: React.FC = () => {
                   options={statusOptions}
                 />
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button type="submit">
-                  {isEditing ? 'تحديث' : 'إضافة'}
+
+              {/* Items Section */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-bold">محتوى عرض السعر</h4>
+                  <Button type="button" variant="secondary" size="sm" onClick={handleAddItem}>
+                    + إضافة بند
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                      <div className="md:col-span-1 text-center font-bold text-gray-400">
+                        {index + 1}
+                      </div>
+                      <div className="md:col-span-5">
+                        <Input
+                          label="الوصف"
+                          value={item.description}
+                          onChange={(e) => handleUpdateItem(index, 'description', e.target.value)}
+                          placeholder="مثال: تصوير ريلز"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Input
+                          label="سعر الوحده"
+                          type="number"
+                          value={item.unit_price}
+                          onChange={(e) => handleUpdateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="md:col-span-1">
+                        <Input
+                          label="العدد"
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Input
+                          label="الإجمالي"
+                          type="number"
+                          value={item.total}
+                          disabled
+                        />
+                      </div>
+                      <div className="md:col-span-1">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleRemoveItem(index)}
+                          disabled={formData.items.length === 1}
+                        >
+                          حذف
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl border-2 border-primary-100 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-1">
+                    <p className="text-sm text-gray-500 mb-1">إجمالي عرض السعر</p>
+                    <p className="text-2xl font-bold text-primary-600">{parseFloat(formData.totalamount).toLocaleString('ar-EG')} ج.م</p>
+                  </div>
+                  <Input
+                    label="المبلغ المدفوع مقدماً"
+                    type="number"
+                    value={formData.paid_adv}
+                    onChange={(e) => setFormData({ ...formData, paid_adv: e.target.value })}
+                  />
+                  <Input
+                    label="رقم الإيصال"
+                    value={formData.receipt_no}
+                    onChange={(e) => setFormData({ ...formData, receipt_no: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="submit" size="lg" className="px-12">
+                  {isEditing ? 'تعديل عرض السعر' : 'حفظ عرض السعر'}
                 </Button>
-                <Button type="button" variant="secondary" onClick={handleCancel}>
+                <Button type="button" variant="secondary" size="lg" onClick={handleCancel}>
                   إلغاء
                 </Button>
               </div>
@@ -554,18 +581,6 @@ export const Quotations: React.FC = () => {
 
           {isLoading ? (
             <div className="text-center py-8">جاري التحميل...</div>
-          ) : quotations.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-md mx-auto">
-                <svg className="w-16 h-16 text-blue-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد عروض أسعار</h3>
-                <p className="text-gray-600 mb-4">
-                  لم يتم إنشاء أي عروض أسعار بعد. ابدأ بإضافة عرض سعر جديد.
-                </p>
-              </div>
-            </div>
           ) : (
             <Table
               data={quotations}

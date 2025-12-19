@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
             orderBy: { quote_date: 'desc' },
             include: {
                 customer: true,
-                supplier: true
+                items: true
             }
         });
         res.json(quotations);
@@ -30,7 +30,7 @@ router.get('/:id', async (req, res) => {
             where: { id: idInt },
             include: {
                 customer: true,
-                supplier: true
+                items: true
             }
         });
         if (!quotation) {
@@ -48,33 +48,39 @@ router.post('/', async (req, res) => {
     try {
         const {
             customer_id,
-            supplier_id,
-            event_name,
+            project_type,
+            project_manager,
+            project_name,
             quote_date,
             delivery_date,
             totalamount,
             paid_adv,
             adv_date,
             receipt_no,
-            status
+            status,
+            items // Array of { description, unit_price, quantity, total }
         } = req.body;
 
         const newQuotation = await prisma.quotation.create({
             data: {
                 customer_id,
-                supplier_id,
-                event_name,
+                project_type,
+                project_manager,
+                project_name,
                 quote_date,
                 delivery_date,
                 totalamount: parseFloat(totalamount),
                 paid_adv: paid_adv ? parseFloat(paid_adv) : null,
                 adv_date,
                 receipt_no,
-                status: status || 'مسودة'
+                status: status || 'مسودة',
+                items: {
+                    create: items || []
+                }
             },
             include: {
                 customer: true,
-                supplier: true
+                items: true
             }
         });
         res.json(newQuotation);
@@ -90,35 +96,46 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const {
             customer_id,
-            supplier_id,
-            event_name,
+            project_type,
+            project_manager,
+            project_name,
             quote_date,
             delivery_date,
             totalamount,
             paid_adv,
             adv_date,
             receipt_no,
-            status
+            status,
+            items
         } = req.body;
         const idInt = parseInt(id);
+
+        // Delete existing items first for a simple replace approach
+        await prisma.quotationItem.deleteMany({
+            where: { quotation_id: idInt }
+        });
 
         const updatedQuotation = await prisma.quotation.update({
             where: { id: idInt },
             data: {
                 customer_id,
-                supplier_id,
-                event_name,
+                project_type,
+                project_manager,
+                project_name,
                 quote_date,
                 delivery_date,
                 totalamount: parseFloat(totalamount),
                 paid_adv: paid_adv ? parseFloat(paid_adv) : null,
                 adv_date,
                 receipt_no,
-                status
+                status,
+                items: {
+                    create: items || []
+                }
             },
             include: {
                 customer: true,
-                supplier: true
+                items: true
             }
         });
         res.json(updatedQuotation);

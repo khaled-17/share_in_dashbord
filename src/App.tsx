@@ -14,6 +14,7 @@ import { Suppliers } from './pages/Suppliers';
 import { SupplierDetails } from './pages/Suppliers/SupplierDetails';
 import { Shareen } from './pages/Shareen';
 import { Settings } from './pages/Settings';
+import { WorkOrders } from './pages/WorkOrders';
 
 const RouteHandler = () => {
   const location = useLocation();
@@ -35,6 +36,10 @@ const RouteHandler = () => {
       '/quotations': {
         title: 'عروض الأسعار',
         subtitle: 'إنشاء ومتابعة عروض الأسعار المقدمة للعملاء'
+      },
+      '/work-orders': {
+        title: 'أوامر التشغيل',
+        subtitle: 'إدارة ومتابعة أوامر التشغيل والمشاريع'
       },
       '/reports': {
         title: 'التقارير المالية',
@@ -85,6 +90,7 @@ const RouteHandler = () => {
 
         <Route path="/quotations" element={<Quotations />} />
         <Route path="/quotations/:id" element={<QuotationDetails />} />
+        <Route path="/work-orders" element={<WorkOrders />} />
         <Route path="/reports" element={<Reports />} />
 
         <Route path="/customers" element={<Customers />} />

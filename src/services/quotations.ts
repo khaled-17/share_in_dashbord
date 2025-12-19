@@ -1,12 +1,20 @@
 import { api } from './api';
 import type { Customer } from './customers';
-import type { Supplier } from './suppliers';
+
+export interface QuotationItem {
+    id?: number;
+    description: string;
+    unit_price: number;
+    quantity: number;
+    total: number;
+}
 
 export interface Quotation {
     id: number;
     customer_id: string;
-    supplier_id?: string | null;
-    event_name?: string | null;
+    project_type?: string | null;
+    project_manager?: string | null;
+    project_name?: string | null;
     quote_date: string;
     delivery_date?: string | null;
     totalamount: number;
@@ -15,7 +23,7 @@ export interface Quotation {
     receipt_no?: string | null;
     status: string;
     customer?: Customer;
-    supplier?: Supplier;
+    items?: QuotationItem[];
 }
 
 export const quotationService = {

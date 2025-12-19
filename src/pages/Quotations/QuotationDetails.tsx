@@ -7,8 +7,9 @@ import { quotationService } from '../../services/quotations';
 interface QuotationDetailsData {
     id: number;
     customer_id: string;
-    supplier_id?: string | null;
-    event_name?: string | null;
+    project_type?: string | null;
+    project_manager?: string | null;
+    project_name?: string | null;
     quote_date: string;
     delivery_date?: string | null;
     totalamount: number;
@@ -17,7 +18,7 @@ interface QuotationDetailsData {
     receipt_no?: string | null;
     status: string;
     customer_name?: string;
-    supplier_name?: string;
+    items?: any[];
 }
 
 export const QuotationDetails: React.FC = () => {
@@ -41,7 +42,6 @@ export const QuotationDetails: React.FC = () => {
             setQuotation({
                 ...data,
                 customer_name: data.customer?.name,
-                supplier_name: data.supplier?.name,
             });
         } catch (err: any) {
             toast.error('فشل في تحميل تفاصيل عرض السعر: ' + err.message);
@@ -114,52 +114,39 @@ export const QuotationDetails: React.FC = () => {
     }
 
     const quotationNumber = `QUO-${String(quotation.id).padStart(4, '0')}`;
-
     const remainingAmount = quotation.totalamount - (quotation.paid_adv || 0);
 
     return (
         <>
             <Toaster position="top-center" />
 
-            <div className="space-y-6">
+            <div className="space-y-6 text-right" dir="rtl">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between no-print">
                     <div className="flex items-center gap-4">
                         <Button variant="secondary" onClick={() => navigate('/quotations')}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
                             رجوع
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">عرض السعر {quotationNumber}</h1>
-                            <p className="text-sm text-gray-500">تفاصيل عرض السعر الكاملة</p>
+                            <p className="text-sm text-gray-500">{quotation.project_name}</p>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handlePrint}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                            </svg>
                             طباعة
                         </Button>
                         <Button variant="secondary" onClick={handleEdit}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
                             تعديل
                         </Button>
                         <Button variant="danger" onClick={handleDelete}>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
                             حذف
                         </Button>
                     </div>
                 </div>
 
                 {/* Status Card */}
-                <Card>
+                <Card className="no-print">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-gray-600 mb-2">حالة عرض السعر</p>
@@ -175,106 +162,66 @@ export const QuotationDetails: React.FC = () => {
                             </span>
                         </div>
                         <div className="flex gap-2">
-                            {quotation.status !== 'مرسل' && (
-                                <Button size="sm" onClick={() => handleStatusChange('مرسل')}>
-                                    تحديد كـ مرسل
-                                </Button>
-                            )}
-                            {quotation.status !== 'مقبول' && (
-                                <Button size="sm" variant="success" onClick={() => handleStatusChange('مقبول')}>
-                                    تحديد كـ مقبول
-                                </Button>
-                            )}
-                            {quotation.status !== 'مرفوض' && (
-                                <Button size="sm" variant="danger" onClick={() => handleStatusChange('مرفوض')}>
-                                    تحديد كـ مرفوض
-                                </Button>
-                            )}
+                            <Button size="sm" onClick={() => handleStatusChange('مرسل')}>مرسل</Button>
+                            <Button size="sm" variant="success" onClick={() => handleStatusChange('مقبول')}>مقبول</Button>
+                            <Button size="sm" variant="danger" onClick={() => handleStatusChange('مرفوض')}>مرفوض</Button>
                         </div>
                     </div>
                 </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Details */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Customer & Supplier Info */}
-                        <Card title="معلومات العميل والمورد">
-                            <div className="grid grid-cols-2 gap-6">
+                        {/* Project Info */}
+                        <Card title="تفاصيل المشروع">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">العميل</p>
-                                    <Link
-                                        to={`/customers/${quotation.customer_id}`}
-                                        className="text-lg font-semibold text-blue-600 hover:underline"
-                                    >
-                                        {quotation.customer_name || 'غير محدد'}
-                                    </Link>
+                                    <p className="text-sm text-gray-600 mb-1">اسم العميل</p>
+                                    <p className="text-lg font-bold text-blue-600">{quotation.customer_name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">المورد</p>
-                                    {quotation.supplier_id ? (
-                                        <Link
-                                            to={`/suppliers/${quotation.supplier_id}`}
-                                            className="text-lg font-semibold text-blue-600 hover:underline"
-                                        >
-                                            {quotation.supplier_name || 'غير محدد'}
-                                        </Link>
-                                    ) : (
-                                        <p className="text-lg font-semibold text-gray-900">-</p>
-                                    )}
+                                    <p className="text-sm text-gray-600 mb-1">اسم المشروع</p>
+                                    <p className="text-lg font-bold text-gray-900">{quotation.project_name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-1">نوع المشروع</p>
+                                    <p className="text-base font-medium text-gray-900">{quotation.project_type}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-1">المسؤول عن المشروع</p>
+                                    <p className="text-base font-medium text-gray-900">{quotation.project_manager || '-'}</p>
                                 </div>
                             </div>
                         </Card>
 
-                        {/* Event & Dates */}
-                        <Card title="تفاصيل المناسبة والتواريخ">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-600 mb-1">اسم المناسبة</p>
-                                    <p className="text-base font-medium text-gray-900">
-                                        {quotation.event_name || '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600 mb-1">تاريخ العرض</p>
-                                    <p className="text-base font-medium text-gray-900">
-                                        {new Date(quotation.quote_date).toLocaleDateString('ar-EG')}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600 mb-1">تاريخ التسليم</p>
-                                    <p className="text-base font-medium text-gray-900">
-                                        {quotation.delivery_date
-                                            ? new Date(quotation.delivery_date).toLocaleDateString('ar-EG')
-                                            : '-'
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Payment Details */}
-                        <Card title="تفاصيل الدفع">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-600 mb-1">رقم الإيصال</p>
-                                    <p className="text-base font-medium text-gray-900">
-                                        {quotation.receipt_no || '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600 mb-1">تاريخ الدفعة المقدمة</p>
-                                    <p className="text-base font-medium text-gray-900">
-                                        {quotation.adv_date
-                                            ? new Date(quotation.adv_date).toLocaleDateString('ar-EG')
-                                            : '-'
-                                        }
-                                    </p>
-                                </div>
+                        {/* Items Table */}
+                        <Card title="محتوى عرض السعر">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوصف</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سعر الوحده</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">العدد</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجمالي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {quotation.items?.map((item, index) => (
+                                            <tr key={index}>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.description}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.unit_price.toLocaleString('ar-EG')}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.quantity}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{item.total.toLocaleString('ar-EG')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </Card>
                     </div>
 
-                    {/* Financial Summary */}
                     <div className="space-y-6">
                         <Card title="الملخص المالي">
                             <div className="space-y-4">
@@ -299,38 +246,22 @@ export const QuotationDetails: React.FC = () => {
                             </div>
                         </Card>
 
-                        {/* Quick Stats */}
-                        <Card>
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600">رقم العرض</p>
-                                        <p className="font-mono font-semibold text-blue-600">{quotationNumber}</p>
-                                    </div>
+                        <Card title="مواعيد وتواريخ">
+                            <div className="space-y-4">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600 text-sm">تاريخ العرض</span>
+                                    <span className="font-medium text-gray-900">{new Date(quotation.quote_date).toLocaleDateString('ar-EG')}</span>
                                 </div>
-
-                                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-600">تاريخ الإنشاء</p>
-                                        <p className="font-semibold text-gray-900">
-                                            {new Date(quotation.quote_date).toLocaleDateString('ar-EG', {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })}
-                                        </p>
-                                    </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600 text-sm">تاريخ التسليم المتوقع</span>
+                                    <span className="font-medium text-gray-900">{quotation.delivery_date ? new Date(quotation.delivery_date).toLocaleDateString('ar-EG') : '-'}</span>
                                 </div>
+                                {quotation.receipt_no && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600 text-sm">رقم الإيصال</span>
+                                        <span className="font-medium text-gray-900">{quotation.receipt_no}</span>
+                                    </div>
+                                )}
                             </div>
                         </Card>
                     </div>

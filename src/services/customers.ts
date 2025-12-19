@@ -2,9 +2,14 @@ import { api } from './api';
 
 export interface Customer {
     customer_id: string;
-    name: string;
+    name: string; // Company Name
+    contact_person?: string | null;
+    company_email?: string | null;
+    contact_email?: string | null;
     phone?: string | null;
+    secondary_phone?: string | null;
     address?: string | null;
+    created_at?: string;
 }
 
 export const customerService = {

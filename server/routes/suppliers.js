@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
     try {
         const suppliers = await prisma.supplier.findMany({
-            orderBy: { id: 'asc' }
+            orderBy: { name: 'asc' }
         });
         res.json(suppliers);
     } catch (error) {
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 // Create new supplier
 router.post('/', async (req, res) => {
     try {
-        const { supplier_id, name, phone, speciality } = req.body;
+        const { supplier_id, name, contact_person, email, phone, secondary_phone, address, speciality } = req.body;
 
         // Check if ID exists
         const existing = await prisma.supplier.findUnique({
@@ -28,14 +28,18 @@ router.post('/', async (req, res) => {
         });
 
         if (existing) {
-            return res.status(400).json({ error: 'Supplier ID already exists' });
+            return res.status(400).json({ error: 'كود المورد موجود بالفعل' });
         }
 
         const newSupplier = await prisma.supplier.create({
             data: {
                 supplier_id,
                 name,
+                contact_person,
+                email,
                 phone,
+                secondary_phone,
+                address,
                 speciality
             }
         });
@@ -43,7 +47,7 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('Error creating supplier:', error);
         if (error.code === 'P2002') {
-            res.status(400).json({ error: 'Supplier ID already exists' });
+            res.status(400).json({ error: 'كود المورد موجود بالفعل' });
         } else {
             res.status(500).json({ error: 'Failed to create supplier' });
         }
@@ -54,7 +58,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, phone, speciality } = req.body;
+        const { name, contact_person, email, phone, secondary_phone, address, speciality } = req.body;
 
         // Parse ID as integer since it's an autoincrement int in schema
         const idInt = parseInt(id);
@@ -63,7 +67,11 @@ router.put('/:id', async (req, res) => {
             where: { id: idInt },
             data: {
                 name,
+                contact_person,
+                email,
                 phone,
+                secondary_phone,
+                address,
                 speciality
             }
         });

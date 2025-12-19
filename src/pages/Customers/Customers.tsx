@@ -13,8 +13,12 @@ export const Customers: React.FC = () => {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customer_id: '',
-    name: '',
+    name: '', // اسم الشركة
+    contact_person: '', // اسم المسؤول
+    company_email: '', // ايميل الشركة
+    contact_email: '', // ايميل الشخص المسؤول
     phone: '',
+    secondary_phone: '',
     address: ''
   });
   const [showForm, setShowForm] = useState(false);
@@ -64,7 +68,11 @@ export const Customers: React.FC = () => {
       setFormData({
         customer_id: generateNextId(),
         name: '',
+        contact_person: '',
+        company_email: '',
+        contact_email: '',
         phone: '',
+        secondary_phone: '',
         address: ''
       });
     }
@@ -75,36 +83,38 @@ export const Customers: React.FC = () => {
     e.preventDefault();
 
     if (!formData.customer_id.trim() || !formData.name.trim()) {
-      toast.error('رقم العميل والاسم مطلوبان');
+      toast.error('كود العميل واسم الشركة مطلوبان');
       return;
     }
 
     const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
 
     try {
+      const payload = {
+        name: formData.name.trim(),
+        contact_person: formData.contact_person.trim() || null,
+        company_email: formData.company_email.trim() || null,
+        contact_email: formData.contact_email.trim() || null,
+        phone: formData.phone.trim() || null,
+        secondary_phone: formData.secondary_phone.trim() || null,
+        address: formData.address.trim() || null,
+      };
+
       if (isEditing && currentId) {
         // Update existing customer
-        await customerService.update(currentId, {
-          name: formData.name,
-          phone: formData.phone || null,
-          address: formData.address || null,
-        });
-
+        await customerService.update(currentId, payload);
         toast.success('تم تحديث العميل بنجاح', { id: loadingToast });
       } else {
         // Insert new customer
         try {
           await customerService.create({
             customer_id: formData.customer_id.trim(),
-            name: formData.name,
-            phone: formData.phone || null,
-            address: formData.address || null,
+            ...payload
           });
           toast.success('تم إضافة العميل بنجاح', { id: loadingToast });
         } catch (error: any) {
-          // Check for duplicate ID error from backend
-          if (error.message && error.message.includes('exists')) { // Simplified check, refine based on backend error format
-            toast.error(`رقم العميل "${formData.customer_id}" موجود بالفعل. جرب رقماً آخر.`, { id: loadingToast, duration: 4000 });
+          if (error.message && error.message.includes('exists')) {
+            toast.error(`كود العميل "${formData.customer_id}" موجود بالفعل. جرب كود آخر.`, { id: loadingToast, duration: 4000 });
             return;
           }
           throw error;
@@ -112,10 +122,7 @@ export const Customers: React.FC = () => {
       }
 
       // Reset form and refresh data
-      setFormData({ customer_id: '', name: '', phone: '', address: '' });
-      setShowForm(false);
-      setIsEditing(false);
-      setCurrentId(null);
+      handleCancel();
       await fetchCustomers();
     } catch (err: any) {
       toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
@@ -130,7 +137,11 @@ export const Customers: React.FC = () => {
     setFormData({
       customer_id: customer.customer_id,
       name: customer.name,
+      contact_person: customer.contact_person || '',
+      company_email: customer.company_email || '',
+      contact_email: customer.contact_email || '',
       phone: customer.phone || '',
+      secondary_phone: customer.secondary_phone || '',
       address: customer.address || '',
     });
     setShowForm(true);
@@ -155,7 +166,16 @@ export const Customers: React.FC = () => {
 
   // Cancel form
   const handleCancel = () => {
-    setFormData({ customer_id: '', name: '', phone: '', address: '' });
+    setFormData({
+      customer_id: '',
+      name: '',
+      contact_person: '',
+      company_email: '',
+      contact_email: '',
+      phone: '',
+      secondary_phone: '',
+      address: ''
+    });
     setShowForm(false);
     setIsEditing(false);
     setCurrentId(null);
@@ -163,11 +183,10 @@ export const Customers: React.FC = () => {
 
   // Table columns
   const columns = [
-    { key: 'customer_id', label: 'رقم العميل', header: 'رقم العميل' },
     {
       key: 'name',
-      label: 'الاسم',
-      header: 'الاسم',
+      label: 'اسم الشركة',
+      header: 'اسم الشركة',
       render: (customer: Customer) => (
         <Link
           to={`/customers/${customer.customer_id}`}
@@ -177,8 +196,22 @@ export const Customers: React.FC = () => {
         </Link>
       )
     },
+    { key: 'contact_person', label: 'اسم المسؤول', header: 'اسم المسؤول' },
     { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
     { key: 'address', label: 'العنوان', header: 'العنوان' },
+    {
+      key: 'created_at',
+      label: 'تاريخ التكويد',
+      header: 'تاريخ التكويد',
+      render: (customer: Customer) => customer.created_at ? new Date(customer.created_at).toLocaleDateString('ar-EG') : '-'
+    },
+    {
+      key: 'customer_id',
+      label: 'كود العميل',
+      header: 'كود العميل',
+      width: '100px',
+      align: 'center' as const
+    },
     {
       key: 'actions',
       label: 'الإجراءات',
@@ -252,25 +285,51 @@ export const Customers: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="رقم العميل *"
+                  label="كود العميل *"
                   value={formData.customer_id}
                   onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
                   disabled={isEditing}
                   placeholder="مثال: C00001"
-                  helperText={isEditing ? '' : 'تم توليد الرقم تلقائياً - يمكنك تعديله'}
+                  helperText={isEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
                   required
                 />
                 <Input
-                  label="الاسم *"
+                  label="اسم الشركة *"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="اسم العميل"
+                  placeholder="اسم الشركة"
                   required
+                />
+                <Input
+                  label="اسم المسئول"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  placeholder="اسم الشخص المسئول"
+                />
+                <Input
+                  label="ايميل الشركة"
+                  type="email"
+                  value={formData.company_email}
+                  onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
+                  placeholder="company@example.com"
+                />
+                <Input
+                  label="ايميل المسئول"
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                  placeholder="person@example.com"
                 />
                 <Input
                   label="رقم الهاتف"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="01XXXXXXXXX"
+                />
+                <Input
+                  label="رقم هاتف إضافي"
+                  value={formData.secondary_phone}
+                  onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
                   placeholder="01XXXXXXXXX"
                 />
                 <Input

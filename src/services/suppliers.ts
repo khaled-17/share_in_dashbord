@@ -3,9 +3,14 @@ import { api } from './api';
 export interface Supplier {
     id: number;
     supplier_id: string;
-    name: string;
+    name: string; // Company Name
+    contact_person?: string | null;
+    email?: string | null;
     phone?: string | null;
+    secondary_phone?: string | null;
+    address?: string | null;
     speciality?: string | null;
+    created_at?: string;
 }
 
 export const supplierService = {

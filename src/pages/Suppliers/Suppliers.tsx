@@ -13,8 +13,12 @@ export const Suppliers: React.FC = () => {
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     supplier_id: '',
-    name: '',
+    name: '', // اسم الشركة
+    contact_person: '', // اسم المسئول أو صاحب الشركة
+    email: '',
     phone: '',
+    secondary_phone: '',
+    address: '',
     speciality: ''
   });
   const [showForm, setShowForm] = useState(false);
@@ -64,7 +68,11 @@ export const Suppliers: React.FC = () => {
       setFormData({
         supplier_id: generateNextId(),
         name: '',
+        contact_person: '',
+        email: '',
         phone: '',
+        secondary_phone: '',
+        address: '',
         speciality: ''
       });
     }
@@ -75,30 +83,33 @@ export const Suppliers: React.FC = () => {
     e.preventDefault();
 
     if (!formData.supplier_id.trim() || !formData.name.trim()) {
-      toast.error('كود المورد واسم المورد مطلوبان');
+      toast.error('كود المورد واسم الشركة مطلوبان');
       return;
     }
 
     const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
 
     try {
+      const payload = {
+        name: formData.name.trim(),
+        contact_person: formData.contact_person.trim() || null,
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        secondary_phone: formData.secondary_phone.trim() || null,
+        address: formData.address.trim() || null,
+        speciality: formData.speciality.trim() || null,
+      };
+
       if (isEditing && currentId !== null) {
         // Update existing supplier
-        await supplierService.update(currentId, {
-          name: formData.name,
-          phone: formData.phone || null,
-          speciality: formData.speciality || null,
-        });
-
+        await supplierService.update(currentId, payload);
         toast.success('تم تحديث بيانات المورد بنجاح', { id: loadingToast });
       } else {
         // Insert new supplier
         try {
           await supplierService.create({
             supplier_id: formData.supplier_id.trim(),
-            name: formData.name,
-            phone: formData.phone || null,
-            speciality: formData.speciality || null,
+            ...payload
           });
           toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
         } catch (error: any) {
@@ -111,10 +122,7 @@ export const Suppliers: React.FC = () => {
       }
 
       // Reset form and refresh data
-      setFormData({ supplier_id: '', name: '', phone: '', speciality: '' });
-      setShowForm(false);
-      setIsEditing(false);
-      setCurrentId(null);
+      handleCancel();
       await fetchSuppliers();
     } catch (err: any) {
       toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
@@ -129,7 +137,11 @@ export const Suppliers: React.FC = () => {
     setFormData({
       supplier_id: supplier.supplier_id,
       name: supplier.name,
+      contact_person: supplier.contact_person || '',
+      email: supplier.email || '',
       phone: supplier.phone || '',
+      secondary_phone: supplier.secondary_phone || '',
+      address: supplier.address || '',
       speciality: supplier.speciality || '',
     });
     setShowForm(true);
@@ -154,7 +166,16 @@ export const Suppliers: React.FC = () => {
 
   // Cancel form
   const handleCancel = () => {
-    setFormData({ supplier_id: '', name: '', phone: '', speciality: '' });
+    setFormData({
+      supplier_id: '',
+      name: '',
+      contact_person: '',
+      email: '',
+      phone: '',
+      secondary_phone: '',
+      address: '',
+      speciality: ''
+    });
     setShowForm(false);
     setIsEditing(false);
     setCurrentId(null);
@@ -162,11 +183,10 @@ export const Suppliers: React.FC = () => {
 
   // Table columns
   const columns = [
-    { key: 'supplier_id', label: 'كود المورد', header: 'كود المورد' },
     {
       key: 'name',
-      label: 'اسم المورد',
-      header: 'اسم المورد',
+      label: 'اسم الشركة',
+      header: 'اسم الشركة',
       render: (supplier: Supplier) => (
         <Link
           to={`/suppliers/${supplier.supplier_id}`}
@@ -176,8 +196,22 @@ export const Suppliers: React.FC = () => {
         </Link>
       )
     },
+    { key: 'contact_person', label: 'المسئول', header: 'المسئول' },
     { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
     { key: 'speciality', label: 'التخصص', header: 'التخصص' },
+    {
+      key: 'created_at',
+      label: 'تاريخ التكويد',
+      header: 'تاريخ التكويد',
+      render: (supplier: Supplier) => supplier.created_at ? new Date(supplier.created_at).toLocaleDateString('ar-EG') : '-'
+    },
+    {
+      key: 'supplier_id',
+      label: 'كود المورد',
+      header: 'كود المورد',
+      width: '100px',
+      align: 'center' as const
+    },
     {
       key: 'actions',
       label: 'الإجراءات',
@@ -260,17 +294,42 @@ export const Suppliers: React.FC = () => {
                   required
                 />
                 <Input
-                  label="اسم المورد *"
+                  label="اسم الشركة *"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="اسم الشركة أو الشخص"
+                  placeholder="اسم الشركة"
                   required
+                />
+                <Input
+                  label="اسم المسئول / صاحب الشركة"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  placeholder="الاسم"
+                />
+                <Input
+                  label="ايميل المورد"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="supplier@example.com"
                 />
                 <Input
                   label="رقم الهاتف"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="01XXXXXXXXX"
+                />
+                <Input
+                  label="رقم هاتف إضافي"
+                  value={formData.secondary_phone}
+                  onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
+                  placeholder="01XXXXXXXXX"
+                />
+                <Input
+                  label="العنوان"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="العنوان الكامل"
                 />
                 <Input
                   label="التخصص"

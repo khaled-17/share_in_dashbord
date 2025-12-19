@@ -13,6 +13,7 @@ import reviewRoutes from './routes/reviews.js';
 import employeeRoutes from './routes/employees.js';
 import shareenRoutes from './routes/shareen.js';
 import quotationRoutes from './routes/quotations.js';
+import workOrderRoutes from './routes/work_orders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/shareen', shareenRoutes);
 app.use('/api/quotations', quotationRoutes);
+app.use('/api/work-orders', workOrderRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
