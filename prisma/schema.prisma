@@ -21,5 +21,6 @@ model CustomerReview {
   review    String
   rating    Int      @default(5)
   avatar    String?
+  phoneNumber String?
   createdAt DateTime @default(now())
 }

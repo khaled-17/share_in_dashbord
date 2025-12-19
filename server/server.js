@@ -36,14 +36,15 @@ app.get('/api/reviews', async (req, res) => {
 // Create Review endpoint
 app.post('/api/reviews', async (req, res) => {
   try {
-    const { name, role, review, rating, avatar } = req.body;
+    const { name, role, review, rating, avatar, phoneNumber } = req.body;
     const newReview = await prisma.customerReview.create({
       data: {
         name,
         role,
         review,
         rating,
-        avatar
+        avatar,
+        phoneNumber
       }
     });
     res.json(newReview);
