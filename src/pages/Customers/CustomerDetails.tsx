@@ -1,25 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  phone: string;
-  address: string;
-}
-
-interface Revenue {
-  id: number;
-  rev_date: string;
-  amount: number;
-  receipt_no: string;
-  quote_id: number | null;
-  revtype_id: string;
-  notes: string;
-  revenue_types?: { revtype_name: string };
-}
+import { financeService } from '../../services/finance';
+import type { Revenue } from '../../services/finance';
+import { customerService } from '../../services/customers';
+import type { Customer } from '../../services/customers';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -35,29 +20,26 @@ export const CustomerDetails: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
-        // Fetch customer details
-        const { data: customerData, error: customerError } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('customer_id', customerId)
-          .single();
 
-        if (customerError) throw customerError;
-        setCustomer(customerData);
+        const [allCustomers, allRevenues] = await Promise.all([
+          customerService.getAll(),
+          financeService.getAllRevenue()
+        ]);
 
-        // Fetch customer revenues
-        const { data: revenueData, error: revenueError } = await supabase
-          .from('revenue')
-          .select(`
-            *,
-            revenue_types (revtype_name)
-          `)
-          .eq('customer_id', customerId)
-          .order('rev_date', { ascending: false });
+        // Find customer
+        const foundCustomer = allCustomers?.find(c => c.customer_id === customerId);
+        if (foundCustomer) {
+          setCustomer(foundCustomer);
+        } else {
+          setCustomer(null);
+        }
 
-        if (revenueError) throw revenueError;
-        setRevenues(revenueData || []);
+        // Filter revenues
+        const customerRevenues = allRevenues?.filter(r => r.customer_id === customerId) || [];
+        // Sort by date desc
+        customerRevenues.sort((a, b) => new Date(b.rev_date).getTime() - new Date(a.rev_date).getTime());
+
+        setRevenues(customerRevenues);
 
       } catch (err: any) {
         toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -74,8 +56,8 @@ export const CustomerDetails: React.FC = () => {
 
   // Format amount
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ar-EG', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ar-EG', {
+      style: 'currency',
       currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
@@ -92,29 +74,29 @@ export const CustomerDetails: React.FC = () => {
   };
 
   const columns = [
-    { 
-      key: 'rev_date', 
-      label: 'التاريخ', 
+    {
+      key: 'rev_date',
+      label: 'التاريخ',
       header: 'التاريخ',
       render: (revenue: Revenue) => formatDate(revenue.rev_date)
     },
-    { 
-      key: 'amount', 
-      label: 'المبلغ', 
+    {
+      key: 'amount',
+      label: 'المبلغ',
       header: 'المبلغ',
       render: (revenue: Revenue) => formatAmount(revenue.amount)
     },
-    { 
-      key: 'type', 
-      label: 'النوع', 
+    {
+      key: 'type',
+      label: 'النوع',
       header: 'النوع',
       render: (revenue: Revenue) => {
-        return revenue.revenue_types?.revtype_name || revenue.revtype_id;
+        return (revenue as any).type?.revtype_name || revenue.revtype_id || (revenue as any).revenue_types?.revtype_name;
       }
     },
-    { 
-      key: 'quote_id', 
-      label: 'رقم عرض السعر', 
+    {
+      key: 'quote_id',
+      label: 'رقم عرض السعر',
       header: 'رقم عرض السعر',
       render: (revenue: Revenue) => revenue.quote_id ? `#${revenue.quote_id}` : '-'
     },
@@ -163,7 +145,7 @@ export const CustomerDetails: React.FC = () => {
             <p className="text-2xl font-bold text-green-800">{formatAmount(totalRevenue)}</p>
           </div>
         </div>
- 
+
         <h3 className="text-lg font-semibold mb-4">سجل العمليات</h3>
         <Table
           columns={columns}

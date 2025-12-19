@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
+import { financeService } from '../../services/finance';
 
 interface LedgerItem {
   date: string;
@@ -25,26 +25,25 @@ export const Reports: React.FC = () => {
       let openingBalance = 0;
       let transactions: LedgerItem[] = [];
 
+      // Fetch all data
+      const [allRevenue, allExpenses] = await Promise.all([
+        financeService.getAllRevenue(),
+        financeService.getAllExpenses()
+      ]);
+
+      const revenues = allRevenue || [];
+      const expenses = allExpenses || [];
+
       // 1. Calculate Opening Balance (Sum of all transactions before dateFrom)
-      // This is a simplification. In a real app, you might have a separate function or table for balances.
+      // Filter previous revenue
+      const prevRevenueTotal = revenues
+        .filter((item: any) => item.rev_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
-      // Sum previous revenue
-      const { data: prevRevenue, error: prevRevError } = await supabase
-        .from('revenue')
-        .select('amount')
-        .lt('rev_date', dateFrom);
-
-      if (prevRevError) throw prevRevError;
-      const prevRevenueTotal = prevRevenue?.reduce((sum, item) => sum + item.amount, 0) || 0;
-
-      // Sum previous expenses
-      const { data: prevExpenses, error: prevExpError } = await supabase
-        .from('expenses')
-        .select('amount')
-        .lt('exp_date', dateFrom);
-
-      if (prevExpError) throw prevExpError;
-      const prevExpensesTotal = prevExpenses?.reduce((sum, item) => sum + item.amount, 0) || 0;
+      // Filter previous expenses
+      const prevExpensesTotal = expenses
+        .filter((item: any) => item.exp_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
       openingBalance = prevRevenueTotal - prevExpensesTotal;
 
@@ -53,55 +52,31 @@ export const Reports: React.FC = () => {
       let currentExpenses: any[] = [];
 
       if (reportType === 'all' || reportType === 'receipts') {
-        const { data: revData, error: revError } = await supabase
-          .from('revenue')
-          .select(`
-            id,
-            rev_date,
-            amount,
-            notes,
-            customers (name)
-          `)
-          .gte('rev_date', dateFrom)
-          .lte('rev_date', dateTo)
-          .order('rev_date', { ascending: true });
-
-        if (revError) throw revError;
-        currentRevenue = revData || [];
+        currentRevenue = revenues
+          .filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo)
+          .sort((a: any, b: any) => new Date(a.rev_date).getTime() - new Date(b.rev_date).getTime());
       }
 
       if (reportType === 'all' || reportType === 'payments') {
-        const { data: expData, error: expError } = await supabase
-          .from('expenses')
-          .select(`
-            id,
-            exp_date,
-            amount,
-            notes,
-            suppliers (name)
-          `)
-          .gte('exp_date', dateFrom)
-          .lte('exp_date', dateTo)
-          .order('exp_date', { ascending: true });
-
-        if (expError) throw expError;
-        currentExpenses = expData || [];
+        currentExpenses = expenses
+          .filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo)
+          .sort((a: any, b: any) => new Date(a.exp_date).getTime() - new Date(b.exp_date).getTime());
       }
 
       // 3. Transform and Merge Data
-      const revenueItems: LedgerItem[] = currentRevenue.map(item => ({
+      const revenueItems: LedgerItem[] = currentRevenue.map((item: any) => ({
         date: item.rev_date,
-        description: `قبض من ${(item.customers as any)?.name || 'غير محدد'} - ${item.notes || ''}`,
-        debit: item.amount,
+        description: `قبض من ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
+        debit: Number(item.amount),
         credit: 0,
         balance: 0 // Calculated later
       }));
 
-      const expenseItems: LedgerItem[] = currentExpenses.map(item => ({
+      const expenseItems: LedgerItem[] = currentExpenses.map((item: any) => ({
         date: item.exp_date,
-        description: `صرف لـ ${(item.suppliers as any)?.name || 'غير محدد'} - ${item.notes || ''}`,
+        description: `صرف لـ ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
         debit: 0,
-        credit: item.amount,
+        credit: Number(item.amount),
         balance: 0 // Calculated later
       }));
 

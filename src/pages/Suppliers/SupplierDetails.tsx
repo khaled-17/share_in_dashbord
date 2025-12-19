@@ -1,24 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
-
-interface Supplier {
-  supplier_id: string;
-  name: string;
-  phone: string;
-  speciality: string;
-}
-
-interface Expense {
-  id: number;
-  exp_date: string;
-  amount: number;
-  receipt_no: string;
-  exptype_id: string;
-  notes: string;
-  expense_types?: { exptype_name: string };
-}
+import { financeService } from '../../services/finance';
+import type { Expense } from '../../services/finance';
+import { supplierService } from '../../services/suppliers';
+import type { Supplier } from '../../services/suppliers';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -34,29 +20,26 @@ export const SupplierDetails: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
-        // Fetch supplier details
-        const { data: supplierData, error: supplierError } = await supabase
-          .from('suppliers')
-          .select('*')
-          .eq('supplier_id', supplierId)
-          .single();
 
-        if (supplierError) throw supplierError;
-        setSupplier(supplierData);
+        const [allSuppliers, allExpenses] = await Promise.all([
+          supplierService.getAll(),
+          financeService.getAllExpenses()
+        ]);
 
-        // Fetch supplier expenses
-        const { data: expenseData, error: expenseError } = await supabase
-          .from('expenses')
-          .select(`
-            *,
-            expense_types (exptype_name)
-          `)
-          .eq('supplier_id', supplierId)
-          .order('exp_date', { ascending: false });
+        // Find supplier
+        const foundSupplier = allSuppliers?.find(s => s.supplier_id === supplierId);
+        if (foundSupplier) {
+          setSupplier(foundSupplier);
+        } else {
+          setSupplier(null);
+        }
 
-        if (expenseError) throw expenseError;
-        setExpenses(expenseData || []);
+        // Filter expenses
+        const supplierExpenses = allExpenses?.filter(e => e.supplier_id === supplierId) || [];
+        // Sort by date desc
+        supplierExpenses.sort((a, b) => new Date(b.exp_date).getTime() - new Date(a.exp_date).getTime());
+
+        setExpenses(supplierExpenses);
 
       } catch (err: any) {
         toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -73,8 +56,8 @@ export const SupplierDetails: React.FC = () => {
 
   // Format amount
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ar-EG', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ar-EG', {
+      style: 'currency',
       currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
@@ -91,24 +74,24 @@ export const SupplierDetails: React.FC = () => {
   };
 
   const columns = [
-    { 
-      key: 'exp_date', 
-      label: 'التاريخ', 
+    {
+      key: 'exp_date',
+      label: 'التاريخ',
       header: 'التاريخ',
       render: (expense: Expense) => formatDate(expense.exp_date)
     },
-    { 
-      key: 'amount', 
-      label: 'المبلغ', 
+    {
+      key: 'amount',
+      label: 'المبلغ',
       header: 'المبلغ',
       render: (expense: Expense) => formatAmount(expense.amount)
     },
-    { 
-      key: 'type', 
-      label: 'النوع', 
+    {
+      key: 'type',
+      label: 'النوع',
       header: 'النوع',
       render: (expense: Expense) => {
-        return expense.expense_types?.exptype_name || expense.exptype_id;
+        return (expense as any).type?.exptype_name || expense.exptype_id || (expense as any).expense_types?.exptype_name;
       }
     },
     { key: 'receipt_no', label: 'رقم الإيصال', header: 'رقم الإيصال' },

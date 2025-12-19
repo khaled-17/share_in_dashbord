@@ -1,25 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface Employee {
-  id: number;
-  emp_code: string;
-  full_name: string;
-  phone: string;
-  salary: number;
-}
+import { employeeService } from '../../services/employees';
+import type { Employee } from '../../services/employees';
 
 export const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ 
-    emp_code: '', 
-    full_name: '', 
+  const [formData, setFormData] = useState({
+    emp_code: '',
+    name: '',
     phone: '',
     salary: ''
   });
@@ -28,34 +21,28 @@ export const Employees: React.FC = () => {
   // Generate next employee code
   const generateNextCode = () => {
     if (employees.length === 0) return 'E001';
-    
+
     // Filter employees with valid format (E + numbers)
     const validCodes = employees
       .map(e => e.emp_code)
       .filter(code => /^E\d+$/.test(code))
       .map(code => parseInt(code.substring(1)))
       .filter(num => !isNaN(num));
-    
+
     // If no valid codes found, start from 1
     if (validCodes.length === 0) return 'E001';
-    
+
     // Find the maximum code and increment
     const maxCode = Math.max(...validCodes);
     const nextNum = maxCode + 1;
     return 'E' + nextNum.toString().padStart(3, '0');
   };
 
-  // Fetch employees from Supabase
+  // Fetch employees from API
   const fetchEmployees = async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('employees')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      
+      const data = await employeeService.getAll();
       setEmployees(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -75,7 +62,7 @@ export const Employees: React.FC = () => {
     if (!isEditing) {
       setFormData({
         emp_code: generateNextCode(),
-        full_name: '',
+        name: '',
         phone: '',
         salary: ''
       });
@@ -85,8 +72,8 @@ export const Employees: React.FC = () => {
   // Add or update employee
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.emp_code.trim() || !formData.full_name.trim()) {
+
+    if (!formData.emp_code.trim() || !formData.name.trim()) {
       toast.error('كود الموظف والاسم مطلوبان');
       return;
     }
@@ -102,43 +89,28 @@ export const Employees: React.FC = () => {
     try {
       if (isEditing && currentId !== null) {
         // Update existing employee
-        const { error: updateError } = await supabase
-          .from('employees')
-          .update({
-            full_name: formData.full_name,
-            phone: formData.phone || null,
-            salary: salary,
-          })
-          .eq('id', currentId);
+        await employeeService.update(currentId, {
+          emp_code: formData.emp_code.trim(),
+          name: formData.name,
+          phone: formData.phone || null,
+          salary: salary,
+        });
 
-        if (updateError) throw updateError;
-        
         toast.success('تم تحديث بيانات الموظف بنجاح', { id: loadingToast });
       } else {
         // Insert new employee
-        const { error: insertError } = await supabase
-          .from('employees')
-          .insert([{
-            emp_code: formData.emp_code.trim(),
-            full_name: formData.full_name,
-            phone: formData.phone || null,
-            salary: salary,
-          }]);
+        await employeeService.create({
+          emp_code: formData.emp_code.trim(),
+          name: formData.name,
+          phone: formData.phone || null,
+          salary: salary,
+        });
 
-        if (insertError) {
-          if (insertError.code === '23505') {
-            toast.error(`كود الموظف "${formData.emp_code}" موجود بالفعل. جرب كوداً آخر.`, { id: loadingToast, duration: 4000 });
-          } else {
-            throw insertError;
-          }
-          return;
-        }
-        
         toast.success('تم إضافة الموظف بنجاح', { id: loadingToast });
       }
 
       // Reset form and refresh data
-      setFormData({ emp_code: '', full_name: '', phone: '', salary: '' });
+      setFormData({ emp_code: '', name: '', phone: '', salary: '' });
       setShowForm(false);
       setIsEditing(false);
       setCurrentId(null);
@@ -155,7 +127,7 @@ export const Employees: React.FC = () => {
     setCurrentId(employee.id);
     setFormData({
       emp_code: employee.emp_code,
-      full_name: employee.full_name,
+      name: employee.name,
       phone: employee.phone || '',
       salary: employee.salary ? employee.salary.toString() : '',
     });
@@ -169,12 +141,7 @@ export const Employees: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error: deleteError } = await supabase
-        .from('employees')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
+      await employeeService.delete(id);
 
       toast.success('تم حذف الموظف بنجاح', { id: loadingToast });
       await fetchEmployees();
@@ -186,17 +153,17 @@ export const Employees: React.FC = () => {
 
   // Cancel form
   const handleCancel = () => {
-    setFormData({ emp_code: '', full_name: '', phone: '', salary: '' });
+    setFormData({ emp_code: '', name: '', phone: '', salary: '' });
     setShowForm(false);
     setIsEditing(false);
     setCurrentId(null);
   };
 
   // Format salary
-  const formatSalary = (salary: number | null) => {
+  const formatSalary = (salary: number | null | undefined) => {
     if (!salary) return '-';
-    return new Intl.NumberFormat('ar-EG', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ar-EG', {
+      style: 'currency',
       currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
@@ -206,11 +173,11 @@ export const Employees: React.FC = () => {
   // Table columns
   const columns = [
     { key: 'emp_code', label: 'كود الموظف', header: 'كود الموظف' },
-    { key: 'full_name', label: 'الاسم الكامل', header: 'الاسم الكامل' },
+    { key: 'name', label: 'الاسم الكامل', header: 'الاسم الكامل' },
     { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
-    { 
-      key: 'salary', 
-      label: 'الراتب', 
+    {
+      key: 'salary',
+      label: 'الراتب',
       header: 'الراتب',
       render: (employee: Employee) => formatSalary(employee.salary)
     },
@@ -241,8 +208,8 @@ export const Employees: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -267,7 +234,7 @@ export const Employees: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card
           title="إدارة الموظفين"
@@ -297,8 +264,8 @@ export const Employees: React.FC = () => {
                 />
                 <Input
                   label="الاسم الكامل *"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="اسم الموظف الكامل"
                   required
                 />

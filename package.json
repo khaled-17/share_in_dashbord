@@ -1,7 +1,6 @@
 {
   "name": "share-in-app",
   "homepage": "https://khaled-17.github.io/share_in_dashbord",
-
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,15 +9,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-      "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist"
-
-   },
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@supabase/supabase-js": "^2.84.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "pg": "^8.16.3",
     "prisma": "^5.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

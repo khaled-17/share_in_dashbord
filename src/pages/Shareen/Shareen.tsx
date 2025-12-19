@@ -1,28 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface ShareenItem {
-  id: number;
-  created_at: string;
-}
+import { shareenService } from '../../services/shareen';
+import type { ShareenItem } from '../../services/shareen';
 
 export const Shareen: React.FC = () => {
   const [items, setItems] = useState<ShareenItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch data from Supabase
+  // Fetch data from API
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('shareen')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      
+      const data = await shareenService.getAll();
       setItems(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -50,9 +40,9 @@ export const Shareen: React.FC = () => {
   // Table columns
   const columns = [
     { key: 'id', label: 'المعرف', header: 'المعرف' },
-    { 
-      key: 'created_at', 
-      label: 'تاريخ الإنشاء', 
+    {
+      key: 'created_at',
+      label: 'تاريخ الإنشاء',
       header: 'تاريخ الإنشاء',
       render: (item: ShareenItem) => formatDate(item.created_at)
     },
@@ -60,8 +50,8 @@ export const Shareen: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -80,7 +70,7 @@ export const Shareen: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card title="سجل shareen">
           {isLoading ? (

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
+import { quotationService } from '../../services/quotations';
+import { customerService, type Customer } from '../../services/customers';
+import { supplierService, type Supplier } from '../../services/suppliers';
 
 interface Quotation {
   id: number;
@@ -11,19 +13,9 @@ interface Quotation {
   clientName: string;
   customer_id: string;
   totalAmount: number;
-  status: 'مسودة' | 'مرسل' | 'مقبول' | 'مرفوض';
+  status: 'مسودة' | 'مرسل' | 'مقبول' | 'مرفوض' | string;
   validUntil: string;
   itemsCount: number;
-}
-
-interface Customer {
-  customer_id: string;
-  name: string;
-}
-
-interface Supplier {
-  supplier_id: string;
-  name: string;
 }
 
 export const Quotations: React.FC = () => {
@@ -53,42 +45,19 @@ export const Quotations: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Fetch quotations
-      const { data: quotationsData, error: quotationsError } = await supabase
-        .from('quotations')
-        .select(`
-          *,
-          customers (name),
-          suppliers (name)
-        `)
-        .order('quote_date', { ascending: false });
-
-      if (quotationsError && quotationsError.code !== '42P01') {
-        throw quotationsError;
-      }
-
-      // Fetch customers
-      const { data: customersData, error: customersError } = await supabase
-        .from('customers')
-        .select('customer_id, name')
-        .order('name', { ascending: true });
-
-      if (customersError) throw customersError;
-
-      // Fetch suppliers
-      const { data: suppliersData, error: suppliersError } = await supabase
-        .from('suppliers')
-        .select('supplier_id, name')
-        .order('name', { ascending: true });
-
-      if (suppliersError) throw suppliersError;
+      // Fetch quotations, customers and suppliers in parallel
+      const [quotationsData, customersData, suppliersData] = await Promise.all([
+        quotationService.getAll(),
+        customerService.getAll(),
+        supplierService.getAll()
+      ]);
 
       // Transform quotations data
       const transformedData: Quotation[] = (quotationsData || []).map(item => ({
         id: item.id,
-        quotationNumber: item.quote_id ? `QUO-${String(item.quote_id).padStart(4, '0')}` : `QUO-${String(item.id).padStart(4, '0')}`,
+        quotationNumber: `QUO-${String(item.id).padStart(4, '0')}`,
         date: item.quote_date || new Date().toISOString().split('T')[0],
-        clientName: (item.customers as any)?.name || 'غير محدد',
+        clientName: item.customer?.name || 'غير محدد',
         customer_id: item.customer_id,
         totalAmount: item.totalamount || 0,
         status: item.status || 'مسودة',
@@ -162,19 +131,10 @@ export const Quotations: React.FC = () => {
       };
 
       if (isEditing && currentId !== null) {
-        const { error } = await supabase
-          .from('quotations')
-          .update(dataToSubmit)
-          .eq('id', currentId);
-
-        if (error) throw error;
+        await quotationService.update(currentId, dataToSubmit);
         toast.success('تم تحديث عرض السعر بنجاح', { id: loadingToast });
       } else {
-        const { error } = await supabase
-          .from('quotations')
-          .insert([dataToSubmit]);
-
-        if (error) throw error;
+        await quotationService.create(dataToSubmit);
         toast.success('تم إضافة عرض السعر بنجاح', { id: loadingToast });
       }
 
@@ -203,13 +163,7 @@ export const Quotations: React.FC = () => {
   // Edit quotation
   const handleEdit = async (id: number) => {
     try {
-      const { data, error } = await supabase
-        .from('quotations')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+      const data = await quotationService.getById(id);
 
       setIsEditing(true);
       setCurrentId(id);
@@ -238,12 +192,7 @@ export const Quotations: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error } = await supabase
-        .from('quotations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await quotationService.delete(id);
 
       toast.success('تم حذف عرض السعر بنجاح', { id: loadingToast });
       await fetchData();
@@ -273,12 +222,7 @@ export const Quotations: React.FC = () => {
     const loadingToast = toast.loading('جاري إرسال عرض السعر...');
 
     try {
-      const { error } = await supabase
-        .from('quotations')
-        .update({ status: 'مرسل' })
-        .eq('id', id);
-
-      if (error) throw error;
+      await quotationService.update(id, { status: 'مرسل' });
 
       toast.success('تم إرسال عرض السعر بنجاح', { id: loadingToast });
       await fetchData();

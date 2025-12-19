@@ -1,62 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface Customer {
-  customer_id: string;
-  name: string;
-  phone: string;
-  address: string;
-}
-
+import { customerService } from '../../services/customers';
+import type { Customer } from '../../services/customers';
 import { Link } from 'react-router-dom';
 
 export const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ 
-    customer_id: '', 
-    name: '', 
-    phone: '', 
-    address: '' 
+  const [formData, setFormData] = useState({
+    customer_id: '',
+    name: '',
+    phone: '',
+    address: ''
   });
   const [showForm, setShowForm] = useState(false);
 
   // Generate next customer ID
   const generateNextId = () => {
     if (customers.length === 0) return 'C00001';
-    
+
     // Filter customers with valid format (C + numbers)
     const validIds = customers
       .map(c => c.customer_id)
       .filter(id => /^C\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
-    
+
     // If no valid IDs found, start from 1
     if (validIds.length === 0) return 'C00001';
-    
+
     // Find the maximum ID and increment
     const maxId = Math.max(...validIds);
     const nextNum = maxId + 1;
     return 'C' + nextNum.toString().padStart(5, '0');
   };
 
-  // Fetch customers from Supabase
+  // Fetch customers from API
   const fetchCustomers = async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('customers')
-        .select('*')
-        .order('customer_id', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      
+      const data = await customerService.getAll();
       setCustomers(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -86,7 +73,7 @@ export const Customers: React.FC = () => {
   // Add or update customer
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.customer_id.trim() || !formData.name.trim()) {
       toast.error('رقم العميل والاسم مطلوبان');
       return;
@@ -97,39 +84,31 @@ export const Customers: React.FC = () => {
     try {
       if (isEditing && currentId) {
         // Update existing customer
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update({
-            name: formData.name,
-            phone: formData.phone || null,
-            address: formData.address || null,
-          })
-          .eq('customer_id', currentId);
+        await customerService.update(currentId, {
+          name: formData.name,
+          phone: formData.phone || null,
+          address: formData.address || null,
+        });
 
-        if (updateError) throw updateError;
-        
         toast.success('تم تحديث العميل بنجاح', { id: loadingToast });
       } else {
         // Insert new customer
-        const { error: insertError } = await supabase
-          .from('customers')
-          .insert([{
+        try {
+          await customerService.create({
             customer_id: formData.customer_id.trim(),
             name: formData.name,
             phone: formData.phone || null,
             address: formData.address || null,
-          }]);
-
-        if (insertError) {
-          if (insertError.code === '23505') {
+          });
+          toast.success('تم إضافة العميل بنجاح', { id: loadingToast });
+        } catch (error: any) {
+          // Check for duplicate ID error from backend
+          if (error.message && error.message.includes('exists')) { // Simplified check, refine based on backend error format
             toast.error(`رقم العميل "${formData.customer_id}" موجود بالفعل. جرب رقماً آخر.`, { id: loadingToast, duration: 4000 });
-          } else {
-            throw insertError;
+            return;
           }
-          return;
+          throw error;
         }
-        
-        toast.success('تم إضافة العميل بنجاح', { id: loadingToast });
       }
 
       // Reset form and refresh data
@@ -164,12 +143,7 @@ export const Customers: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error: deleteError } = await supabase
-        .from('customers')
-        .delete()
-        .eq('customer_id', customerId);
-
-      if (deleteError) throw deleteError;
+      await customerService.delete(customerId);
 
       toast.success('تم حذف العميل بنجاح', { id: loadingToast });
       await fetchCustomers();
@@ -190,12 +164,12 @@ export const Customers: React.FC = () => {
   // Table columns
   const columns = [
     { key: 'customer_id', label: 'رقم العميل', header: 'رقم العميل' },
-    { 
-      key: 'name', 
-      label: 'الاسم', 
+    {
+      key: 'name',
+      label: 'الاسم',
       header: 'الاسم',
       render: (customer: Customer) => (
-        <Link 
+        <Link
           to={`/customers/${customer.customer_id}`}
           className="text-blue-600 hover:underline font-medium"
         >
@@ -232,8 +206,8 @@ export const Customers: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -258,7 +232,7 @@ export const Customers: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card
           title="إدارة العملاء"

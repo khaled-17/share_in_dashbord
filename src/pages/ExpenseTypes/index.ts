@@ -1,1 +1,0 @@
-export { ExpenseTypes } from './ExpenseTypes';

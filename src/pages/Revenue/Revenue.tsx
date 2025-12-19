@@ -1,42 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface Revenue {
-  id: number;
-  rev_date: string;
-  amount: number;
-  receipt_no: string;
-  quote_id: number | null;
-  customer_id: string;
-  revtype_id: string;
-  notes: string;
-  customers?: { name: string };
-  revenue_types?: { revtype_name: string };
-}
-
-interface Customer {
-  customer_id: string;
-  name: string;
-}
-
-interface RevenueType {
-  revtype_id: string;
-  revtype_name: string;
-}
-
+import { financeService } from '../../services/finance';
+import type { Revenue as RevenueModel } from '../../services/finance';
+import { customerService } from '../../services/customers';
+import type { Customer } from '../../services/customers';
+import { settingsService } from '../../services/settings';
+import type { RevenueType } from '../../services/settings';
 import { Link } from 'react-router-dom';
 
 export const Revenue: React.FC = () => {
-  const [revenues, setRevenues] = useState<Revenue[]>([]);
+  const [revenues, setRevenues] = useState<RevenueModel[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [revenueTypes, setRevenueTypes] = useState<RevenueType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ 
+  const [formData, setFormData] = useState({
     rev_date: new Date().toISOString().split('T')[0],
     amount: '',
     receipt_no: '',
@@ -51,34 +32,12 @@ export const Revenue: React.FC = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch revenues with related data
-      const { data: revenuesData, error: revenuesError } = await supabase
-        .from('revenue')
-        .select(`
-          *,
-          customers (name),
-          revenue_types (revtype_name)
-        `)
-        .order('rev_date', { ascending: false });
 
-      if (revenuesError) throw revenuesError;
-      
-      // Fetch customers
-      const { data: customersData, error: customersError } = await supabase
-        .from('customers')
-        .select('customer_id, name')
-        .order('name', { ascending: true });
-
-      if (customersError) throw customersError;
-
-      // Fetch revenue types
-      const { data: typesData, error: typesError } = await supabase
-        .from('revenue_types')
-        .select('revtype_id, revtype_name')
-        .order('revtype_name', { ascending: true });
-
-      if (typesError) throw typesError;
+      const [revenuesData, customersData, typesData] = await Promise.all([
+        financeService.getAllRevenue(),
+        customerService.getAll(),
+        settingsService.getRevenueTypes()
+      ]);
 
       setRevenues(revenuesData || []);
       setCustomers(customersData || []);
@@ -114,7 +73,7 @@ export const Revenue: React.FC = () => {
   // Add or update revenue
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.rev_date || !formData.amount || !formData.customer_id || !formData.revtype_id) {
       toast.error('التاريخ والمبلغ والعميل ونوع الإيراد مطلوبة');
       return;
@@ -131,43 +90,34 @@ export const Revenue: React.FC = () => {
     try {
       if (isEditing && currentId !== null) {
         // Update existing revenue
-        const { error: updateError } = await supabase
-          .from('revenue')
-          .update({
-            rev_date: formData.rev_date,
-            amount: amount,
-            receipt_no: formData.receipt_no || null,
-            customer_id: formData.customer_id,
-            revtype_id: formData.revtype_id,
-            quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
-            notes: formData.notes || null,
-          })
-          .eq('id', currentId);
+        await financeService.updateRevenue(currentId, {
+          rev_date: formData.rev_date,
+          amount: amount,
+          receipt_no: formData.receipt_no || null,
+          customer_id: formData.customer_id,
+          revtype_id: formData.revtype_id,
+          quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
+          notes: formData.notes || null,
+        });
 
-        if (updateError) throw updateError;
-        
         toast.success('تم تحديث الإيراد بنجاح', { id: loadingToast });
       } else {
         // Insert new revenue
-        const { error: insertError } = await supabase
-          .from('revenue')
-          .insert([{
-            rev_date: formData.rev_date,
-            amount: amount,
-            receipt_no: formData.receipt_no || null,
-            customer_id: formData.customer_id,
-            revtype_id: formData.revtype_id,
-            notes: formData.notes || null,
-            quote_id: formData.quote_id ? parseInt(formData.quote_id) : null
-          }]);
+        await financeService.createRevenue({
+          rev_date: formData.rev_date,
+          amount: amount,
+          receipt_no: formData.receipt_no || null,
+          customer_id: formData.customer_id,
+          revtype_id: formData.revtype_id,
+          quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
+          notes: formData.notes || null
+        });
 
-        if (insertError) throw insertError;
-        
         toast.success('تم إضافة الإيراد بنجاح', { id: loadingToast });
       }
 
       // Reset form and refresh data
-      setFormData({ 
+      setFormData({
         rev_date: new Date().toISOString().split('T')[0],
         amount: '',
         receipt_no: '',
@@ -187,7 +137,7 @@ export const Revenue: React.FC = () => {
   };
 
   // Edit revenue
-  const handleEdit = (revenue: Revenue) => {
+  const handleEdit = (revenue: RevenueModel) => {
     setIsEditing(true);
     setCurrentId(revenue.id);
     setFormData({
@@ -209,12 +159,7 @@ export const Revenue: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error: deleteError } = await supabase
-        .from('revenue')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
+      await financeService.deleteRevenue(id);
 
       toast.success('تم حذف الإيراد بنجاح', { id: loadingToast });
       await fetchData();
@@ -226,7 +171,7 @@ export const Revenue: React.FC = () => {
 
   // Cancel form
   const handleCancel = () => {
-    setFormData({ 
+    setFormData({
       rev_date: new Date().toISOString().split('T')[0],
       amount: '',
       receipt_no: '',
@@ -242,8 +187,8 @@ export const Revenue: React.FC = () => {
 
   // Format amount
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ar-EG', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ar-EG', {
+      style: 'currency',
       currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
@@ -261,27 +206,27 @@ export const Revenue: React.FC = () => {
 
   // Table columns
   const columns = [
-    { 
-      key: 'rev_date', 
-      label: 'التاريخ', 
+    {
+      key: 'rev_date',
+      label: 'التاريخ',
       header: 'التاريخ',
-      render: (revenue: Revenue) => formatDate(revenue.rev_date)
+      render: (revenue: RevenueModel) => formatDate(revenue.rev_date)
     },
-    { 
-      key: 'amount', 
-      label: 'المبلغ', 
+    {
+      key: 'amount',
+      label: 'المبلغ',
       header: 'المبلغ',
-      render: (revenue: Revenue) => formatAmount(revenue.amount)
+      render: (revenue: RevenueModel) => formatAmount(revenue.amount)
     },
-    { 
-      key: 'customer', 
-      label: 'العميل', 
+    {
+      key: 'customer',
+      label: 'العميل',
       header: 'العميل',
-      render: (revenue: Revenue) => {
+      render: (revenue: RevenueModel) => {
         const customer = customers.find(c => c.customer_id === revenue.customer_id);
         const name = customer ? customer.name : revenue.customer_id;
         return (
-          <Link 
+          <Link
             to={`/customers/${revenue.customer_id}`}
             className="text-blue-600 hover:underline font-medium"
           >
@@ -290,20 +235,20 @@ export const Revenue: React.FC = () => {
         );
       }
     },
-    { 
-      key: 'type', 
-      label: 'النوع', 
+    {
+      key: 'type',
+      label: 'النوع',
       header: 'النوع',
-      render: (revenue: Revenue) => {
+      render: (revenue: RevenueModel) => {
         const type = revenueTypes.find(t => t.revtype_id === revenue.revtype_id);
         return type ? type.revtype_name : revenue.revtype_id;
       }
     },
-    { 
-      key: 'quote_id', 
-      label: 'رقم عرض السعر', 
+    {
+      key: 'quote_id',
+      label: 'رقم عرض السعر',
       header: 'رقم عرض السعر',
-      render: (revenue: Revenue) => revenue.quote_id ? `#${revenue.quote_id}` : '-'
+      render: (revenue: RevenueModel) => revenue.quote_id ? `#${revenue.quote_id}` : '-'
     },
     { key: 'receipt_no', label: 'رقم الإيصال', header: 'رقم الإيصال' },
     { key: 'notes', label: 'ملاحظات', header: 'ملاحظات' },
@@ -311,7 +256,7 @@ export const Revenue: React.FC = () => {
       key: 'actions',
       label: 'الإجراءات',
       header: 'الإجراءات',
-      render: (revenue: Revenue) => (
+      render: (revenue: RevenueModel) => (
         <div className="flex gap-2">
           <Button
             variant="secondary"
@@ -346,8 +291,8 @@ export const Revenue: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -372,7 +317,7 @@ export const Revenue: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card
           title="إدارة الإيرادات"

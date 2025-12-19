@@ -1,21 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface ExpenseType {
-    id: number;
-    exptype_id: string;
-    exptype_name: string;
-    category: string;
-}
-
-interface RevenueType {
-    id: number;
-    revtype_id: string;
-    revtype_name: string;
-    paymethod: string;
-}
+import { settingsService } from '../../services/settings';
+import type { ExpenseType, RevenueType } from '../../services/settings';
 
 type TabType = 'expense' | 'revenue';
 
@@ -72,11 +59,7 @@ export const Settings: React.FC = () => {
     const fetchExpenseTypes = async () => {
         try {
             setExpenseLoading(true);
-            const { data, error } = await supabase
-                .from('expense_types')
-                .select('*')
-                .order('id', { ascending: true });
-            if (error) throw error;
+            const data = await settingsService.getExpenseTypes();
             setExpenseTypes(data || []);
         } catch (err: any) {
             toast.error('فشل في تحميل أنواع المصروفات: ' + err.message);
@@ -107,30 +90,17 @@ export const Settings: React.FC = () => {
 
         try {
             if (expenseEditing && expenseCurrentId !== null) {
-                const { error } = await supabase
-                    .from('expense_types')
-                    .update({
-                        exptype_name: expenseFormData.exptype_name,
-                        category: expenseFormData.category || null,
-                    })
-                    .eq('id', expenseCurrentId);
-                if (error) throw error;
+                await settingsService.updateExpenseType(expenseCurrentId, {
+                    exptype_name: expenseFormData.exptype_name,
+                    category: expenseFormData.category || null,
+                });
                 toast.success('تم تحديث نوع المصروف بنجاح', { id: loadingToast });
             } else {
-                const { error } = await supabase
-                    .from('expense_types')
-                    .insert([{
-                        exptype_id: expenseFormData.exptype_id.trim(),
-                        exptype_name: expenseFormData.exptype_name,
-                        category: expenseFormData.category || null,
-                    }]);
-                if (error) {
-                    if (error.code === '23505') {
-                        toast.error(`كود النوع "${expenseFormData.exptype_id}" موجود بالفعل`, { id: loadingToast });
-                        return;
-                    }
-                    throw error;
-                }
+                await settingsService.createExpenseType({
+                    exptype_id: expenseFormData.exptype_id.trim(),
+                    exptype_name: expenseFormData.exptype_name,
+                    category: expenseFormData.category || null,
+                });
                 toast.success('تم إضافة نوع المصروف بنجاح', { id: loadingToast });
             }
 
@@ -140,7 +110,11 @@ export const Settings: React.FC = () => {
             setExpenseCurrentId(null);
             await fetchExpenseTypes();
         } catch (err: any) {
-            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            if (err.message && err.message.includes('exists')) {
+                toast.error(`كود النوع "${expenseFormData.exptype_id}" موجود بالفعل`, { id: loadingToast });
+            } else {
+                toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            }
         }
     };
 
@@ -159,8 +133,7 @@ export const Settings: React.FC = () => {
         if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
         const loadingToast = toast.loading('جاري الحذف...');
         try {
-            const { error } = await supabase.from('expense_types').delete().eq('id', id);
-            if (error) throw error;
+            await settingsService.deleteExpenseType(id);
             toast.success('تم حذف نوع المصروف بنجاح', { id: loadingToast });
             await fetchExpenseTypes();
         } catch (err: any) {
@@ -193,11 +166,7 @@ export const Settings: React.FC = () => {
     const fetchRevenueTypes = async () => {
         try {
             setRevenueLoading(true);
-            const { data, error } = await supabase
-                .from('revenue_types')
-                .select('*')
-                .order('id', { ascending: true });
-            if (error) throw error;
+            const data = await settingsService.getRevenueTypes();
             setRevenueTypes(data || []);
         } catch (err: any) {
             toast.error('فشل في تحميل أنواع الإيرادات: ' + err.message);
@@ -228,30 +197,17 @@ export const Settings: React.FC = () => {
 
         try {
             if (revenueEditing && revenueCurrentId !== null) {
-                const { error } = await supabase
-                    .from('revenue_types')
-                    .update({
-                        revtype_name: revenueFormData.revtype_name,
-                        paymethod: revenueFormData.paymethod,
-                    })
-                    .eq('id', revenueCurrentId);
-                if (error) throw error;
+                await settingsService.updateRevenueType(revenueCurrentId, {
+                    revtype_name: revenueFormData.revtype_name,
+                    paymethod: revenueFormData.paymethod,
+                });
                 toast.success('تم تحديث نوع الإيراد بنجاح', { id: loadingToast });
             } else {
-                const { error } = await supabase
-                    .from('revenue_types')
-                    .insert([{
-                        revtype_id: revenueFormData.revtype_id.trim(),
-                        revtype_name: revenueFormData.revtype_name,
-                        paymethod: revenueFormData.paymethod,
-                    }]);
-                if (error) {
-                    if (error.code === '23505') {
-                        toast.error(`كود النوع "${revenueFormData.revtype_id}" موجود بالفعل`, { id: loadingToast });
-                        return;
-                    }
-                    throw error;
-                }
+                await settingsService.createRevenueType({
+                    revtype_id: revenueFormData.revtype_id.trim(),
+                    revtype_name: revenueFormData.revtype_name,
+                    paymethod: revenueFormData.paymethod,
+                });
                 toast.success('تم إضافة نوع الإيراد بنجاح', { id: loadingToast });
             }
 
@@ -261,7 +217,11 @@ export const Settings: React.FC = () => {
             setRevenueCurrentId(null);
             await fetchRevenueTypes();
         } catch (err: any) {
-            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            if (err.message && err.message.includes('exists')) {
+                toast.error(`كود النوع "${revenueFormData.revtype_id}" موجود بالفعل`, { id: loadingToast });
+            } else {
+                toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            }
         }
     };
 
@@ -280,8 +240,7 @@ export const Settings: React.FC = () => {
         if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
         const loadingToast = toast.loading('جاري الحذف...');
         try {
-            const { error } = await supabase.from('revenue_types').delete().eq('id', id);
-            if (error) throw error;
+            await settingsService.deleteRevenueType(id);
             toast.success('تم حذف نوع الإيراد بنجاح', { id: loadingToast });
             await fetchRevenueTypes();
         } catch (err: any) {
@@ -394,8 +353,8 @@ export const Settings: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('expense')}
                                 className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'expense'
-                                        ? 'bg-white text-primary-600 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-primary-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
                                 أنواع المصروفات
@@ -403,8 +362,8 @@ export const Settings: React.FC = () => {
                             <button
                                 onClick={() => setActiveTab('revenue')}
                                 className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'revenue'
-                                        ? 'bg-white text-primary-600 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white text-primary-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900'
                                     }`}
                             >
                                 أنواع الإيرادات

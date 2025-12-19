@@ -1,31 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface Expense {
-  id: number;
-  exp_date: string;
-  amount: number;
-  receipt_no: string;
-  quote_id: number | null;
-  supplier_id: string;
-  exptype_id: string;
-  notes: string;
-  suppliers?: { name: string };
-  expense_types?: { exptype_name: string };
-}
-
-interface Supplier {
-  supplier_id: string;
-  name: string;
-}
-
-interface ExpenseType {
-  exptype_id: string;
-  exptype_name: string;
-}
-
+import { financeService } from '../../services/finance';
+import type { Expense } from '../../services/finance';
+import { supplierService } from '../../services/suppliers';
+import type { Supplier } from '../../services/suppliers';
+import { settingsService } from '../../services/settings';
+import type { ExpenseType } from '../../services/settings';
 import { Link } from 'react-router-dom';
 
 export const Expenses: React.FC = () => {
@@ -33,10 +14,10 @@ export const Expenses: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ 
+  const [formData, setFormData] = useState({
     exp_date: new Date().toISOString().split('T')[0],
     amount: '',
     receipt_no: '',
@@ -51,34 +32,12 @@ export const Expenses: React.FC = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch expenses with related data
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select(`
-          *,
-          suppliers (name),
-          expense_types (exptype_name)
-        `)
-        .order('exp_date', { ascending: false });
 
-      if (expensesError) throw expensesError;
-      
-      // Fetch suppliers
-      const { data: suppliersData, error: suppliersError } = await supabase
-        .from('suppliers')
-        .select('supplier_id, name')
-        .order('name', { ascending: true });
-
-      if (suppliersError) throw suppliersError;
-
-      // Fetch expense types
-      const { data: typesData, error: typesError } = await supabase
-        .from('expense_types')
-        .select('exptype_id, exptype_name')
-        .order('exptype_name', { ascending: true });
-
-      if (typesError) throw typesError;
+      const [expensesData, suppliersData, typesData] = await Promise.all([
+        financeService.getAllExpenses(),
+        supplierService.getAll(),
+        settingsService.getExpenseTypes()
+      ]);
 
       setExpenses(expensesData || []);
       setSuppliers(suppliersData || []);
@@ -114,7 +73,7 @@ export const Expenses: React.FC = () => {
   // Add or update expense
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.exp_date || !formData.amount || !formData.supplier_id || !formData.exptype_id) {
       toast.error('التاريخ والمبلغ والمورد ونوع المصروف مطلوبة');
       return;
@@ -131,43 +90,34 @@ export const Expenses: React.FC = () => {
     try {
       if (isEditing && currentId !== null) {
         // Update existing expense
-        const { error: updateError } = await supabase
-          .from('expenses')
-          .update({
-            exp_date: formData.exp_date,
-            amount: amount,
-            receipt_no: formData.receipt_no || null,
-            supplier_id: formData.supplier_id,
-            exptype_id: formData.exptype_id,
-            quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
-            notes: formData.notes || null,
-          })
-          .eq('id', currentId);
+        await financeService.updateExpense(currentId, {
+          exp_date: formData.exp_date,
+          amount: amount,
+          receipt_no: formData.receipt_no || null,
+          supplier_id: formData.supplier_id,
+          exptype_id: formData.exptype_id,
+          quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
+          notes: formData.notes || null,
+        });
 
-        if (updateError) throw updateError;
-        
         toast.success('تم تحديث المصروف بنجاح', { id: loadingToast });
       } else {
         // Insert new expense
-        const { error: insertError } = await supabase
-          .from('expenses')
-          .insert([{
-            exp_date: formData.exp_date,
-            amount: amount,
-            receipt_no: formData.receipt_no || null,
-            supplier_id: formData.supplier_id,
-            exptype_id: formData.exptype_id,
-            notes: formData.notes || null,
-            quote_id: formData.quote_id ? parseInt(formData.quote_id) : null
-          }]);
+        await financeService.createExpense({
+          exp_date: formData.exp_date,
+          amount: amount,
+          receipt_no: formData.receipt_no || null,
+          supplier_id: formData.supplier_id,
+          exptype_id: formData.exptype_id,
+          quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
+          notes: formData.notes || null,
+        });
 
-        if (insertError) throw insertError;
-        
         toast.success('تم إضافة المصروف بنجاح', { id: loadingToast });
       }
 
       // Reset form and refresh data
-      setFormData({ 
+      setFormData({
         exp_date: new Date().toISOString().split('T')[0],
         amount: '',
         receipt_no: '',
@@ -209,12 +159,7 @@ export const Expenses: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error: deleteError } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
+      await financeService.deleteExpense(id);
 
       toast.success('تم حذف المصروف بنجاح', { id: loadingToast });
       await fetchData();
@@ -226,7 +171,7 @@ export const Expenses: React.FC = () => {
 
   // Cancel form
   const handleCancel = () => {
-    setFormData({ 
+    setFormData({
       exp_date: new Date().toISOString().split('T')[0],
       amount: '',
       receipt_no: '',
@@ -242,8 +187,8 @@ export const Expenses: React.FC = () => {
 
   // Format amount
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ar-EG', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('ar-EG', {
+      style: 'currency',
       currency: 'EGP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
@@ -261,27 +206,27 @@ export const Expenses: React.FC = () => {
 
   // Table columns
   const columns = [
-    { 
-      key: 'exp_date', 
-      label: 'التاريخ', 
+    {
+      key: 'exp_date',
+      label: 'التاريخ',
       header: 'التاريخ',
       render: (expense: Expense) => formatDate(expense.exp_date)
     },
-    { 
-      key: 'amount', 
-      label: 'المبلغ', 
+    {
+      key: 'amount',
+      label: 'المبلغ',
       header: 'المبلغ',
       render: (expense: Expense) => formatAmount(expense.amount)
     },
-    { 
-      key: 'supplier', 
-      label: 'المورد', 
+    {
+      key: 'supplier',
+      label: 'المورد',
       header: 'المورد',
       render: (expense: Expense) => {
         const supplier = suppliers.find(s => s.supplier_id === expense.supplier_id);
         const name = supplier ? supplier.name : expense.supplier_id;
         return (
-          <Link 
+          <Link
             to={`/suppliers/${expense.supplier_id}`}
             className="text-blue-600 hover:underline font-medium"
           >
@@ -290,18 +235,18 @@ export const Expenses: React.FC = () => {
         );
       }
     },
-    { 
-      key: 'type', 
-      label: 'النوع', 
+    {
+      key: 'type',
+      label: 'النوع',
       header: 'النوع',
       render: (expense: Expense) => {
         const type = expenseTypes.find(t => t.exptype_id === expense.exptype_id);
         return type ? type.exptype_name : expense.exptype_id;
       }
     },
-    { 
-      key: 'quote_id', 
-      label: 'رقم عرض السعر', 
+    {
+      key: 'quote_id',
+      label: 'رقم عرض السعر',
       header: 'رقم عرض السعر',
       render: (expense: Expense) => expense.quote_id ? `#${expense.quote_id}` : '-'
     },
@@ -346,8 +291,8 @@ export const Expenses: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -372,7 +317,7 @@ export const Expenses: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card
           title="إدارة المصروفات"

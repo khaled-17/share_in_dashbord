@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
+import { financeService } from '../../services/finance';
 
 interface Transaction {
   id: number;
@@ -35,41 +35,22 @@ export const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Fetch total revenue
-      const { data: revenueData, error: revenueError } = await supabase
-        .from('revenue')
-        .select('amount');
+      const [allRevenue, allExpenses] = await Promise.all([
+        financeService.getAllRevenue(),
+        financeService.getAllExpenses()
+      ]);
 
-      if (revenueError) throw revenueError;
+      const revenueData = allRevenue || [];
+      const expensesData = allExpenses || [];
 
-      const totalRevenue = revenueData?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
-
-      // Fetch total expenses
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select('amount');
-
-      if (expensesError) throw expensesError;
-
-      const totalExpenses = expensesData?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
-
-      // Calculate balance
+      // Calculate totals
+      const totalRevenue = revenueData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const totalExpenses = expensesData.reduce((sum, item) => sum + (item.amount || 0), 0);
       const balance = totalRevenue - totalExpenses;
 
-      // Fetch quotations count
-      let quotationsCount = 0;
-      try {
-        const { count, error: quotationsError } = await supabase
-          .from('quotations')
-          .select('*', { count: 'exact', head: true });
-
-        if (!quotationsError && count !== null) {
-          quotationsCount = count;
-        }
-      } catch (err) {
-        // If quotations table doesn't exist, keep count as 0
-        console.log('جدول quotations غير موجود بعد');
-      }
+      // Fetch quotations count (Mocked/Pending Backend)
+      // TODO: Implement quotationService when backend route is ready
+      const quotationsCount = 0;
 
       setStats({
         totalRevenue,
@@ -78,42 +59,30 @@ export const Dashboard: React.FC = () => {
         quotationsCount,
       });
 
-      // Fetch recent transactions (combine revenue and expenses)
-      const { data: recentRevenue, error: recentRevenueError } = await supabase
-        .from('revenue')
-        .select('id, amount, notes, rev_date, customers(name)')
-        .order('rev_date', { ascending: false })
-        .limit(3);
-
-      if (recentRevenueError) throw recentRevenueError;
-
-      const { data: recentExpenses, error: recentExpensesError } = await supabase
-        .from('expenses')
-        .select('id, amount, notes, exp_date, suppliers(name)')
-        .order('exp_date', { ascending: false })
-        .limit(3);
-
-      if (recentExpensesError) throw recentExpensesError;
+      // Recent Transactions
+      // Sort by date desc
+      const sortedRevenue = [...revenueData].sort((a, b) => new Date(b.rev_date).getTime() - new Date(a.rev_date).getTime()).slice(0, 3);
+      const sortedExpenses = [...expensesData].sort((a, b) => new Date(b.exp_date).getTime() - new Date(a.exp_date).getTime()).slice(0, 3);
 
       // Combine and format transactions
       const transactions: Transaction[] = [
-        ...(recentRevenue?.map(item => ({
+        ...sortedRevenue.map(item => ({
           id: item.id,
           type: 'قبض' as const,
-          description: item.notes || `دفعة من ${(item.customers as any)?.name || 'عميل'}`,
+          description: item.notes || `دفعة من ${(item.customer as any)?.name || 'عميل'}`,
           amount: item.amount,
           date: item.rev_date,
-        })) || []),
-        ...(recentExpenses?.map(item => ({
+        })),
+        ...sortedExpenses.map(item => ({
           id: item.id,
           type: 'صرف' as const,
-          description: item.notes || `دفعة إلى ${(item.suppliers as any)?.name || 'مورد'}`,
+          description: item.notes || `دفعة إلى ${(item.supplier as any)?.name || 'مورد'}`,
           amount: -item.amount,
           date: item.exp_date,
-        })) || []),
+        })),
       ];
 
-      // Sort by date and take top 5
+      // Sort combined by date and take top 5
       transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setRecentTransactions(transactions.slice(0, 5));
 

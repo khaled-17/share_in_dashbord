@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-
-interface Supplier {
-  id: number;
-  supplier_id: string;
-  name: string;
-  phone: string;
-  speciality: string;
-}
-
+import { supplierService } from '../../services/suppliers';
+import type { Supplier } from '../../services/suppliers';
 import { Link } from 'react-router-dom';
 
 export const Suppliers: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ 
-    supplier_id: '', 
-    name: '', 
+  const [formData, setFormData] = useState({
+    supplier_id: '',
+    name: '',
     phone: '',
     speciality: ''
   });
@@ -30,34 +22,28 @@ export const Suppliers: React.FC = () => {
   // Generate next supplier ID
   const generateNextId = () => {
     if (suppliers.length === 0) return 'S001';
-    
+
     // Filter suppliers with valid format (S + numbers)
     const validIds = suppliers
       .map(s => s.supplier_id)
       .filter(id => /^S\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
-    
+
     // If no valid IDs found, start from 1
     if (validIds.length === 0) return 'S001';
-    
+
     // Find the maximum ID and increment
     const maxId = Math.max(...validIds);
     const nextNum = maxId + 1;
     return 'S' + nextNum.toString().padStart(3, '0');
   };
 
-  // Fetch suppliers from Supabase
+  // Fetch suppliers from API
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('id', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      
+      const data = await supplierService.getAll();
       setSuppliers(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
@@ -87,7 +73,7 @@ export const Suppliers: React.FC = () => {
   // Add or update supplier
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.supplier_id.trim() || !formData.name.trim()) {
       toast.error('كود المورد واسم المورد مطلوبان');
       return;
@@ -98,39 +84,30 @@ export const Suppliers: React.FC = () => {
     try {
       if (isEditing && currentId !== null) {
         // Update existing supplier
-        const { error: updateError } = await supabase
-          .from('suppliers')
-          .update({
-            name: formData.name,
-            phone: formData.phone || null,
-            speciality: formData.speciality || null,
-          })
-          .eq('id', currentId);
+        await supplierService.update(currentId, {
+          name: formData.name,
+          phone: formData.phone || null,
+          speciality: formData.speciality || null,
+        });
 
-        if (updateError) throw updateError;
-        
         toast.success('تم تحديث بيانات المورد بنجاح', { id: loadingToast });
       } else {
         // Insert new supplier
-        const { error: insertError } = await supabase
-          .from('suppliers')
-          .insert([{
+        try {
+          await supplierService.create({
             supplier_id: formData.supplier_id.trim(),
             name: formData.name,
             phone: formData.phone || null,
             speciality: formData.speciality || null,
-          }]);
-
-        if (insertError) {
-          if (insertError.code === '23505') {
+          });
+          toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
+        } catch (error: any) {
+          if (error.message && error.message.includes('exists')) {
             toast.error(`كود المورد "${formData.supplier_id}" موجود بالفعل. جرب كوداً آخر.`, { id: loadingToast, duration: 4000 });
-          } else {
-            throw insertError;
+            return;
           }
-          return;
+          throw error;
         }
-        
-        toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
       }
 
       // Reset form and refresh data
@@ -165,12 +142,7 @@ export const Suppliers: React.FC = () => {
     const loadingToast = toast.loading('جاري الحذف...');
 
     try {
-      const { error: deleteError } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
+      await supplierService.delete(id);
 
       toast.success('تم حذف المورد بنجاح', { id: loadingToast });
       await fetchSuppliers();
@@ -191,12 +163,12 @@ export const Suppliers: React.FC = () => {
   // Table columns
   const columns = [
     { key: 'supplier_id', label: 'كود المورد', header: 'كود المورد' },
-    { 
-      key: 'name', 
-      label: 'اسم المورد', 
+    {
+      key: 'name',
+      label: 'اسم المورد',
       header: 'اسم المورد',
       render: (supplier: Supplier) => (
-        <Link 
+        <Link
           to={`/suppliers/${supplier.supplier_id}`}
           className="text-blue-600 hover:underline font-medium"
         >
@@ -233,8 +205,8 @@ export const Suppliers: React.FC = () => {
 
   return (
     <>
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         reverseOrder={false}
         toastOptions={{
           duration: 3000,
@@ -259,7 +231,7 @@ export const Suppliers: React.FC = () => {
           },
         }}
       />
-      
+
       <div className="space-y-6">
         <Card
           title="إدارة الموردين"

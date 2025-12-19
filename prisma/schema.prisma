@@ -10,9 +10,11 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("REVIEWS_DATABASE_URL")
-  directUrl = env("REVIEWS_DIRECT_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
+
+// --- Original Reviews Table ---
 
 model CustomerReview {
   id        String   @id @default(uuid())
@@ -23,4 +25,119 @@ model CustomerReview {
   avatar    String?
   phoneNumber String?
   createdAt DateTime @default(now())
+}
+
+// --- Main Operations Tables ---
+
+model Customer {
+  customer_id String    @id
+  name        String
+  phone       String?
+  address     String?
+  revenues    Revenue[]
+  quotations  Quotation[]
+
+  @@map("customers")
+}
+
+model Supplier {
+  id          Int       @id @default(autoincrement())
+  supplier_id String    @unique
+  name        String
+  phone       String?
+  speciality  String?
+  expenses    Expense[]
+  quotations  Quotation[]
+
+  @@map("suppliers")
+}
+
+model ExpenseType {
+  id           Int       @id @default(autoincrement())
+  exptype_id   String    @unique
+  exptype_name String
+  category     String?
+  expenses     Expense[]
+
+  @@map("expense_types")
+}
+
+model RevenueType {
+  id           Int       @id @default(autoincrement())
+  revtype_id   String    @unique
+  revtype_name String
+  paymethod    String    @default("cash")
+  revenues     Revenue[]
+
+  @@map("revenue_types")
+}
+
+model Revenue {
+  id          Int         @id @default(autoincrement())
+  rev_date    String // Storing as string based on frontend usage (YYYY-MM-DD), or could use DateTime
+  amount      Float
+  receipt_no  String?
+  quote_id    Int?
+  notes       String?
+  customer_id String
+  revtype_id  String
+  
+  customer    Customer    @relation(fields: [customer_id], references: [customer_id])
+  type        RevenueType @relation(fields: [revtype_id], references: [revtype_id])
+
+  @@map("revenue")
+}
+
+model Expense {
+  id          Int         @id @default(autoincrement())
+  exp_date    String // Storing as string to match existing data format
+  amount      Float
+  receipt_no  String?
+  quote_id    Int?
+  notes       String?
+  supplier_id String
+  exptype_id  String
+
+  supplier    Supplier    @relation(fields: [supplier_id], references: [supplier_id])
+  type        ExpenseType @relation(fields: [exptype_id], references: [exptype_id])
+
+  @@map("expenses")
+}
+
+model Employee {
+  id          Int      @id @default(autoincrement())
+  emp_code    String   @unique
+  name        String
+  phone       String?
+  position    String?
+  salary      Float?
+  start_date  String?
+
+  @@map("employees")
+}
+
+model Shareen {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+
+  @@map("shareen")
+}
+
+model Quotation {
+  id            Int      @id @default(autoincrement())
+  customer_id   String
+  supplier_id   String?
+  event_name    String?
+  quote_date    String
+  delivery_date String?
+  totalamount   Float
+  paid_adv      Float?
+  adv_date      String?
+  receipt_no    String?
+  status        String   @default("مسودة")
+  
+  customer      Customer @relation(fields: [customer_id], references: [customer_id])
+  supplier      Supplier? @relation(fields: [supplier_id], references: [supplier_id])
+
+  @@map("quotations")
 }

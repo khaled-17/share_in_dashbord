@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
+import { quotationService } from '../../services/quotations';
 
-interface QuotationDetails {
+interface QuotationDetailsData {
     id: number;
-    quote_id: number;
     customer_id: string;
-    supplier_id: string;
-    event_name: string;
+    supplier_id?: string | null;
+    event_name?: string | null;
     quote_date: string;
-    delivery_date: string;
+    delivery_date?: string | null;
     totalamount: number;
-    paid_adv: number;
-    adv_date: string;
-    receipt_no: string;
+    paid_adv?: number | null;
+    adv_date?: string | null;
+    receipt_no?: string | null;
     status: string;
     customer_name?: string;
     supplier_name?: string;
@@ -24,33 +23,25 @@ interface QuotationDetails {
 export const QuotationDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [quotation, setQuotation] = useState<QuotationDetails | null>(null);
+    const [quotation, setQuotation] = useState<QuotationDetailsData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        fetchQuotationDetails();
+        if (id) {
+            fetchQuotationDetails();
+        }
     }, [id]);
 
     const fetchQuotationDetails = async () => {
         try {
             setIsLoading(true);
 
-            const { data, error } = await supabase
-                .from('quotations')
-                .select(`
-          *,
-          customers (name),
-          suppliers (name)
-        `)
-                .eq('id', id)
-                .single();
-
-            if (error) throw error;
+            const data = await quotationService.getById(parseInt(id!));
 
             setQuotation({
                 ...data,
-                customer_name: (data.customers as any)?.name,
-                supplier_name: (data.suppliers as any)?.name,
+                customer_name: data.customer?.name,
+                supplier_name: data.supplier?.name,
             });
         } catch (err: any) {
             toast.error('فشل في تحميل تفاصيل عرض السعر: ' + err.message);
@@ -74,12 +65,7 @@ export const QuotationDetails: React.FC = () => {
         const loadingToast = toast.loading('جاري الحذف...');
 
         try {
-            const { error } = await supabase
-                .from('quotations')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
+            await quotationService.delete(parseInt(id!));
 
             toast.success('تم حذف عرض السعر بنجاح', { id: loadingToast });
             navigate('/quotations');
@@ -92,12 +78,7 @@ export const QuotationDetails: React.FC = () => {
         const loadingToast = toast.loading('جاري تحديث الحالة...');
 
         try {
-            const { error } = await supabase
-                .from('quotations')
-                .update({ status: newStatus })
-                .eq('id', id);
-
-            if (error) throw error;
+            await quotationService.update(parseInt(id!), { status: newStatus });
 
             toast.success('تم تحديث الحالة بنجاح', { id: loadingToast });
             await fetchQuotationDetails();
@@ -132,9 +113,7 @@ export const QuotationDetails: React.FC = () => {
         );
     }
 
-    const quotationNumber = quotation.quote_id
-        ? `QUO-${String(quotation.quote_id).padStart(4, '0')}`
-        : `QUO-${String(quotation.id).padStart(4, '0')}`;
+    const quotationNumber = `QUO-${String(quotation.id).padStart(4, '0')}`;
 
     const remainingAmount = quotation.totalamount - (quotation.paid_adv || 0);
 
@@ -185,12 +164,12 @@ export const QuotationDetails: React.FC = () => {
                         <div>
                             <p className="text-sm text-gray-600 mb-2">حالة عرض السعر</p>
                             <span className={`px-4 py-2 rounded-full text-sm font-medium ${quotation.status === 'مقبول'
-                                    ? 'bg-green-100 text-green-700'
-                                    : quotation.status === 'مرسل'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : quotation.status === 'مسودة'
-                                            ? 'bg-gray-100 text-gray-700'
-                                            : 'bg-red-100 text-red-700'
+                                ? 'bg-green-100 text-green-700'
+                                : quotation.status === 'مرسل'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : quotation.status === 'مسودة'
+                                        ? 'bg-gray-100 text-gray-700'
+                                        : 'bg-red-100 text-red-700'
                                 }`}>
                                 {quotation.status}
                             </span>

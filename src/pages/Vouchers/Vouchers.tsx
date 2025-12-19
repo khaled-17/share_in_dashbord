@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Card, Button, Table } from '../../components/ui';
-import { supabase } from '../../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
+import { financeService } from '../../services/finance';
 
 interface Voucher {
   id: number;
@@ -31,59 +31,35 @@ export const Vouchers: React.FC = () => {
     }
   }, [location.pathname]);
 
-  // Fetch vouchers data from Supabase
+  // Fetch vouchers data from API
   const fetchVouchers = async () => {
     try {
       setIsLoading(true);
 
-      // Fetch expenses (payment vouchers)
-      const { data: expensesData, error: expensesError } = await supabase
-        .from('expenses')
-        .select(`
-          id,
-          exp_date,
-          amount,
-          receipt_no,
-          notes,
-          suppliers (name)
-        `)
-        .order('exp_date', { ascending: false });
-
-      if (expensesError) throw expensesError;
+      // Fetch expenses and revenues in parallel
+      const [expensesData, revenuesData] = await Promise.all([
+        financeService.getAllExpenses(),
+        financeService.getAllRevenue()
+      ]);
 
       // Transform expenses to vouchers format
       const payments: Voucher[] = (expensesData || []).map((expense) => ({
         id: expense.id,
         voucherNumber: `PAY-${String(expense.id).padStart(3, '0')}`,
         date: expense.exp_date,
-        recipient: (expense.suppliers as any)?.name || 'غير محدد',
+        recipient: expense.supplier?.name || 'غير محدد',
         amount: expense.amount,
         description: expense.notes || 'مصروف',
         paymentMethod: expense.receipt_no ? 'شيك/تحويل' : 'نقدي',
         status: 'مدفوع',
       }));
 
-      // Fetch revenue (receipt vouchers)
-      const { data: revenueData, error: revenueError } = await supabase
-        .from('revenue')
-        .select(`
-          id,
-          rev_date,
-          amount,
-          receipt_no,
-          notes,
-          customers (name)
-        `)
-        .order('rev_date', { ascending: false });
-
-      if (revenueError) throw revenueError;
-
       // Transform revenue to vouchers format
-      const receipts: Voucher[] = (revenueData || []).map((revenue) => ({
+      const receipts: Voucher[] = (revenuesData || []).map((revenue) => ({
         id: revenue.id,
         voucherNumber: `REC-${String(revenue.id).padStart(3, '0')}`,
         date: revenue.rev_date,
-        recipient: (revenue.customers as any)?.name || 'غير محدد',
+        recipient: revenue.customer?.name || 'غير محدد',
         amount: revenue.amount,
         description: revenue.notes || 'إيراد',
         paymentMethod: revenue.receipt_no ? 'شيك/تحويل' : 'نقدي',
