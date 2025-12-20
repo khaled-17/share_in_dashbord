@@ -16,6 +16,7 @@ import { Shareen } from './pages/Shareen';
 import { Settings } from './pages/Settings';
 import { WorkOrders } from './pages/WorkOrders';
 import { Partners } from './pages/Partners';
+import { ReceiptVouchers } from './pages/ReceiptVouchers';
 
 const RouteHandler = () => {
   const location = useLocation();
@@ -81,6 +82,10 @@ const RouteHandler = () => {
         title: 'إدارة الشركاء',
         subtitle: 'إدارة بيانات الشركاء ورأس المال'
       },
+      '/receipt-vouchers': {
+        title: 'سندات القبض',
+        subtitle: 'تسجيل ومتابعة جميع المقبوضات المالية'
+      },
     };
 
     return routes[pathname] || { title: 'لوحة التحكم', subtitle: '' };
@@ -115,6 +120,7 @@ const RouteHandler = () => {
         <Route path="/shareen" element={<Shareen />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/receipt-vouchers" element={<ReceiptVouchers />} />
       </Routes>
     </MainLayout>
   );
