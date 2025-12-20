@@ -17,60 +17,17 @@ datasource db {
 // --- Original Reviews Table ---
 
 model CustomerReview {
-  id        String   @id @default(uuid())
-  name      String
-  role      String?
-  review    String
-  rating    Int      @default(5)
-  avatar    String?
+  id          String   @id @default(uuid())
+  name        String
+  role        String?
+  review      String
+  rating      Int      @default(5)
+  avatar      String?
   phoneNumber String?
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
 }
 
 // --- Main Operations Tables ---
-
-model Customer {
-  customer_id    String    @id
-  name           String    // Company Name
-  contact_person String?   // Person in Charge
-  company_email  String?
-  contact_email  String?
-  phone          String?
-  secondary_phone String?
-  address        String?
-  created_at     DateTime  @default(now())
-  revenues       Revenue[]
-  quotations     Quotation[]
-  work_orders    WorkOrder[]
-
-  @@map("customers")
-}
-
-model Supplier {
-  id             Int       @id @default(autoincrement())
-  supplier_id    String    @unique
-  name           String    // Company Name
-  contact_person String?   // Owner or Person in Charge
-  email          String?
-  phone          String?
-  secondary_phone String?
-  address        String?
-  speciality     String?
-  created_at     DateTime  @default(now())
-  expenses       Expense[]
-
-  @@map("suppliers")
-}
-
-model ExpenseType {
-  id           Int       @id @default(autoincrement())
-  exptype_id   String    @unique
-  exptype_name String
-  category     String?
-  expenses     Expense[]
-
-  @@map("expense_types")
-}
 
 model RevenueType {
   id           Int       @id @default(autoincrement())
@@ -83,7 +40,7 @@ model RevenueType {
 }
 
 model Revenue {
-  id          Int         @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   rev_date    String
   amount      Float
   receipt_no  String?
@@ -91,15 +48,15 @@ model Revenue {
   notes       String?
   customer_id String
   revtype_id  String
-  
-  customer    Customer    @relation(fields: [customer_id], references: [customer_id])
-  type        RevenueType @relation(fields: [revtype_id], references: [revtype_id])
+
+  customer Customer    @relation(fields: [customer_id], references: [customer_id])
+  type     RevenueType @relation(fields: [revtype_id], references: [revtype_id])
 
   @@map("revenue")
 }
 
 model Expense {
-  id          Int         @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   exp_date    String
   amount      Float
   receipt_no  String?
@@ -108,22 +65,10 @@ model Expense {
   supplier_id String
   exptype_id  String
 
-  supplier    Supplier    @relation(fields: [supplier_id], references: [supplier_id])
-  type        ExpenseType @relation(fields: [exptype_id], references: [exptype_id])
+  supplier Supplier    @relation(fields: [supplier_id], references: [supplier_id])
+  type     ExpenseType @relation(fields: [exptype_id], references: [exptype_id])
 
   @@map("expenses")
-}
-
-model Employee {
-  id          Int      @id @default(autoincrement())
-  emp_code    String   @unique
-  name        String
-  phone       String?
-  position    String?
-  salary      Float?
-  start_date  String?
-
-  @@map("employees")
 }
 
 model Shareen {
@@ -134,58 +79,222 @@ model Shareen {
 }
 
 model ProjectType {
-  id           Int         @id @default(autoincrement())
-  type_id      String      @unique
-  type_name    String
-  quotations   Quotation[]
+  id         Int         @id @default(autoincrement())
+  type_id    String      @unique
+  type_name  String
+  quotations Quotation[]
 
   @@map("project_types")
 }
 
 model Quotation {
-  id              Int             @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   customer_id     String
-  project_type_id String?         // ID of the project type
-  project_manager String?         // المسؤول عن المشروع
-  project_name    String?         // اسم المشروع
+  project_type_id String? // ID of the project type
+  project_manager String? // المسؤول عن المشروع
+  project_name    String? // اسم المشروع
   quote_date      String
   delivery_date   String?
   totalamount     Float
   paid_adv        Float?
   adv_date        String?
   receipt_no      String?
-  status          String          @default("مسودة")
-  
-  customer        Customer        @relation(fields: [customer_id], references: [customer_id])
-  project_type    ProjectType?    @relation(fields: [project_type_id], references: [type_id])
-  items           QuotationItem[]
-  work_orders     WorkOrder[]
+  status          String  @default("مسودة")
+
+  customer     Customer        @relation(fields: [customer_id], references: [customer_id])
+  project_type ProjectType?    @relation(fields: [project_type_id], references: [type_id])
+  items        QuotationItem[]
+  work_orders  WorkOrder[]
 
   @@map("quotations")
 }
 
 model QuotationItem {
-  id           Int       @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   quotation_id Int
   description  String
   unit_price   Float
   quantity     Float
   total        Float
-  
-  quotation    Quotation @relation(fields: [quotation_id], references: [id], onDelete: Cascade)
+
+  quotation Quotation @relation(fields: [quotation_id], references: [id], onDelete: Cascade)
 
   @@map("quotation_items")
 }
 
 model WorkOrder {
-  id           Int       @id @default(autoincrement())
-  order_code   String    @unique
+  id           Int      @id @default(autoincrement())
+  order_code   String   @unique
   quotation_id Int
   customer_id  String
-  created_at   DateTime  @default(now())
+  created_at   DateTime @default(now())
 
-  quotation    Quotation @relation(fields: [quotation_id], references: [id])
-  customer     Customer  @relation(fields: [customer_id], references: [customer_id])
+  quotation Quotation @relation(fields: [quotation_id], references: [id])
+  customer  Customer  @relation(fields: [customer_id], references: [customer_id])
+}
 
-  @@map("work_orders")
+// --- Partners (الشركاء) ---
+model Partner {
+  id              Int      @id @default(autoincrement())
+  partner_code    String   @unique
+  name            String
+  phone           String?
+  email           String?
+  initial_capital Float    @default(0) // رأس المال الأولي
+  current_capital Float    @default(0) // رأس المال الحالي
+  created_at      DateTime @default(now())
+
+  receipt_vouchers ReceiptVoucher[] @relation("PartnerReceipts")
+  payment_vouchers PaymentVoucher[] @relation("PartnerPayments")
+
+  @@map("partners")
+}
+
+// --- Receipt Voucher (سند القبض) ---
+model ReceiptVoucher {
+  id             Int    @id @default(autoincrement())
+  voucher_number String @unique // رقم السند
+  voucher_date   String // تاريخ السند
+  amount         Float // المبلغ
+
+  // نوع المصدر (Source Type)
+  source_type String // "customer" | "partner_capital" | "advance_payment" | "other"
+
+  // الجهة المرتبطة (Related Entity)
+  customer_id String? // إذا كان من عميل
+  partner_id  Int? // إذا كان من شريك (زيادة رأس مال)
+
+  // طريقة الدفع (Payment Method)
+  payment_method String // "cash" | "check" | "bank_transfer"
+
+  // بيانات الشيك (Check Details) - إذا كانت طريقة الدفع شيك
+  check_id Int? @unique
+
+  description   String? // وصف/ملاحظات
+  received_from String // المستلم من (اسم الشخص/الجهة)
+  created_by    String? // المستخدم الذي أنشأ السند
+  created_at    DateTime @default(now())
+
+  customer Customer?    @relation(fields: [customer_id], references: [customer_id])
+  partner  Partner?     @relation("PartnerReceipts", fields: [partner_id], references: [id])
+  check    CheckDetail? @relation("ReceiptCheck")
+
+  @@map("receipt_vouchers")
+}
+
+// --- Payment Voucher (سند الصرف) ---
+model PaymentVoucher {
+  id             Int    @id @default(autoincrement())
+  voucher_number String @unique // رقم السند
+  voucher_date   String // تاريخ السند
+  amount         Float // المبلغ
+
+  // نوع المستفيد (Beneficiary Type)
+  beneficiary_type String // "supplier" | "employee" | "partner_withdrawal" | "admin_expense" | "other"
+
+  // الجهة المرتبطة (Related Entity)
+  supplier_id     String? // إذا كان لمورد
+  employee_id     String? // إذا كان لموظف
+  partner_id      Int? // إذا كان مسحوبات شريك
+  expense_type_id String? // إذا كان مصروف إداري
+
+  // طريقة الدفع (Payment Method)
+  payment_method String // "cash" | "check" | "bank_transfer"
+
+  // بيانات الشيك (Check Details) - إذا كانت طريقة الدفع شيك
+  check_id Int? @unique
+
+  description String? // وصف/ملاحظات
+  paid_to     String // المدفوع إلى (اسم الشخص/الجهة)
+  created_by  String? // المستخدم الذي أنشأ السند
+  created_at  DateTime @default(now())
+
+  supplier     Supplier?    @relation(fields: [supplier_id], references: [supplier_id])
+  employee     Employee?    @relation(fields: [employee_id], references: [emp_code])
+  partner      Partner?     @relation("PartnerPayments", fields: [partner_id], references: [id])
+  expense_type ExpenseType? @relation(fields: [expense_type_id], references: [exptype_id])
+  check        CheckDetail? @relation("PaymentCheck")
+
+  @@map("payment_vouchers")
+}
+
+// --- Check Details (بيانات الشيك) ---
+model CheckDetail {
+  id               Int      @id @default(autoincrement())
+  check_number     String // رقم الشيك
+  bank_name        String // اسم البنك
+  check_date       String // تاريخ الشيك
+  beneficiary_name String // اسم المستفيد
+  amount           Float // قيمة الشيك
+  status           String   @default("pending") // "pending" | "cleared" | "bounced" | "cancelled"
+  notes            String? // ملاحظات
+  created_at       DateTime @default(now())
+
+  receipt_voucher    ReceiptVoucher? @relation("ReceiptCheck", fields: [receipt_voucher_id], references: [check_id])
+  receipt_voucher_id Int?            @unique
+
+  payment_voucher    PaymentVoucher? @relation("PaymentCheck", fields: [payment_voucher_id], references: [check_id])
+  payment_voucher_id Int?            @unique
+
+  @@map("check_details")
+}
+
+// Update existing models to add relations
+model Supplier {
+  id               Int              @id @default(autoincrement())
+  supplier_id      String           @unique
+  name             String
+  contact_person   String?
+  email            String?
+  phone            String?
+  secondary_phone  String?
+  address          String?
+  speciality       String?
+  created_at       DateTime         @default(now())
+  expenses         Expense[]
+  payment_vouchers PaymentVoucher[]
+
+  @@map("suppliers")
+}
+
+model Employee {
+  id               Int              @id @default(autoincrement())
+  emp_code         String           @unique
+  name             String
+  phone            String?
+  position         String?
+  salary           Float?
+  start_date       String?
+  payment_vouchers PaymentVoucher[]
+
+  @@map("employees")
+}
+
+model ExpenseType {
+  id               Int              @id @default(autoincrement())
+  exptype_id       String           @unique
+  exptype_name     String
+  category         String?
+  expenses         Expense[]
+  payment_vouchers PaymentVoucher[]
+
+  @@map("expense_types")
+}
+
+model Customer {
+  customer_id      String           @id
+  name             String
+  contact_person   String?
+  company_email    String?
+  contact_email    String?
+  phone            String?
+  secondary_phone  String?
+  address          String?
+  created_at       DateTime         @default(now())
+  revenues         Revenue[]
+  quotations       Quotation[]
+  work_orders      WorkOrder[]
+  receipt_vouchers ReceiptVoucher[]
+
+  @@map("customers")
 }
