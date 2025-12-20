@@ -4,3 +4,5 @@ export { Input } from './Input';
 export { Card } from './Card';
 export { Table } from './Table';
 export { Select } from './Select';
+export { Modal } from './Modal';
+export { Drawer } from './Drawer';

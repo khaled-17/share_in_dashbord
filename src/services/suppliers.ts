@@ -11,10 +11,12 @@ export interface Supplier {
     address?: string | null;
     speciality?: string | null;
     created_at?: string;
+    expenses?: any[];
 }
 
 export const supplierService = {
     getAll: () => api.get<Supplier[]>('/suppliers'),
+    getById: (id: string) => api.get<Supplier>(`/suppliers/${id}`),
 
     create: (data: Omit<Supplier, 'id'>) => api.post<Supplier>('/suppliers', data),
 

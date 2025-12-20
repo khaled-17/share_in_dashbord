@@ -1,49 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input } from '../../components/ui';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Button, Table, Input, Modal } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { customerService } from '../../services/customers';
 import type { Customer } from '../../services/customers';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Customers: React.FC = () => {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customer_id: '',
-    name: '', // اسم الشركة
-    contact_person: '', // اسم المسؤول
-    company_email: '', // ايميل الشركة
-    contact_email: '', // ايميل الشخص المسؤول
+    name: '',
+    contact_person: '',
+    company_email: '',
+    contact_email: '',
     phone: '',
     secondary_phone: '',
     address: ''
   });
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  // Filtered customers based on search
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm.trim()) return customers;
+    const term = searchTerm.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(term) ||
+      c.customer_id.toLowerCase().includes(term) ||
+      (c.phone && c.phone.includes(term)) ||
+      (c.contact_person && c.contact_person.toLowerCase().includes(term))
+    );
+  }, [customers, searchTerm]);
 
   // Generate next customer ID
   const generateNextId = () => {
     if (customers.length === 0) return 'C00001';
-
-    // Filter customers with valid format (C + numbers)
     const validIds = customers
       .map(c => c.customer_id)
       .filter(id => /^C\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
-
-    // If no valid IDs found, start from 1
     if (validIds.length === 0) return 'C00001';
-
-    // Find the maximum ID and increment
     const maxId = Math.max(...validIds);
-    const nextNum = maxId + 1;
-    return 'C' + nextNum.toString().padStart(5, '0');
+    return 'C' + (maxId + 1).toString().padStart(5, '0');
   };
 
-  // Fetch customers from API
   const fetchCustomers = async () => {
     try {
       setIsLoading(true);
@@ -51,7 +57,6 @@ export const Customers: React.FC = () => {
       setCustomers(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -61,76 +66,22 @@ export const Customers: React.FC = () => {
     fetchCustomers();
   }, []);
 
-  // Open form for new customer
-  const handleOpenForm = () => {
-    setShowForm(true);
-    if (!isEditing) {
-      setFormData({
-        customer_id: generateNextId(),
-        name: '',
-        contact_person: '',
-        company_email: '',
-        contact_email: '',
-        phone: '',
-        secondary_phone: '',
-        address: ''
-      });
-    }
+  const handleOpenAdd = () => {
+    setIsEditing(false);
+    setCurrentId(null);
+    setFormData({
+      customer_id: generateNextId(),
+      name: '',
+      contact_person: '',
+      company_email: '',
+      contact_email: '',
+      phone: '',
+      secondary_phone: '',
+      address: ''
+    });
+    setShowModal(true);
   };
 
-  // Add or update customer
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.customer_id.trim() || !formData.name.trim()) {
-      toast.error('كود العميل واسم الشركة مطلوبان');
-      return;
-    }
-
-    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
-
-    try {
-      const payload = {
-        name: formData.name.trim(),
-        contact_person: formData.contact_person.trim() || null,
-        company_email: formData.company_email.trim() || null,
-        contact_email: formData.contact_email.trim() || null,
-        phone: formData.phone.trim() || null,
-        secondary_phone: formData.secondary_phone.trim() || null,
-        address: formData.address.trim() || null,
-      };
-
-      if (isEditing && currentId) {
-        // Update existing customer
-        await customerService.update(currentId, payload);
-        toast.success('تم تحديث العميل بنجاح', { id: loadingToast });
-      } else {
-        // Insert new customer
-        try {
-          await customerService.create({
-            customer_id: formData.customer_id.trim(),
-            ...payload
-          });
-          toast.success('تم إضافة العميل بنجاح', { id: loadingToast });
-        } catch (error: any) {
-          if (error.message && error.message.includes('exists')) {
-            toast.error(`كود العميل "${formData.customer_id}" موجود بالفعل. جرب كود آخر.`, { id: loadingToast, duration: 4000 });
-            return;
-          }
-          throw error;
-        }
-      }
-
-      // Reset form and refresh data
-      handleCancel();
-      await fetchCustomers();
-    } catch (err: any) {
-      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
-      console.error(err);
-    }
-  };
-
-  // Edit customer
   const handleEdit = (customer: Customer) => {
     setIsEditing(true);
     setCurrentId(customer.customer_id);
@@ -144,223 +95,203 @@ export const Customers: React.FC = () => {
       secondary_phone: customer.secondary_phone || '',
       address: customer.address || '',
     });
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  // Delete customer
-  const handleDelete = async (customerId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا العميل؟')) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error('اسم الشركة مطلوب');
+      return;
+    }
 
-    const loadingToast = toast.loading('جاري الحذف...');
-
+    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
     try {
-      await customerService.delete(customerId);
+      const payload = {
+        name: formData.name.trim(),
+        contact_person: formData.contact_person.trim() || null,
+        company_email: formData.company_email.trim() || null,
+        contact_email: formData.contact_email.trim() || null,
+        phone: formData.phone.trim() || null,
+        secondary_phone: formData.secondary_phone.trim() || null,
+        address: formData.address.trim() || null,
+      };
 
-      toast.success('تم حذف العميل بنجاح', { id: loadingToast });
-      await fetchCustomers();
+      if (isEditing && currentId) {
+        await customerService.update(currentId, payload);
+        toast.success('تم تحديث العميل بنجاح', { id: loadingToast });
+      } else {
+        await customerService.create({
+          customer_id: formData.customer_id.trim(),
+          ...payload
+        });
+        toast.success('تم إضافة العميل بنجاح', { id: loadingToast });
+      }
+      setShowModal(false);
+      fetchCustomers();
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
-      console.error(err);
+      toast.error(err.message || 'فشل في العملية', { id: loadingToast });
     }
   };
 
-  // Cancel form
-  const handleCancel = () => {
-    setFormData({
-      customer_id: '',
-      name: '',
-      contact_person: '',
-      company_email: '',
-      contact_email: '',
-      phone: '',
-      secondary_phone: '',
-      address: ''
-    });
-    setShowForm(false);
-    setIsEditing(false);
-    setCurrentId(null);
+  const handleDelete = async (customerId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا العميل؟')) return;
+    const loadingToast = toast.loading('جاري الحذف...');
+    try {
+      await customerService.delete(customerId);
+      toast.success('تم الحذف بنجاح', { id: loadingToast });
+      fetchCustomers();
+    } catch (err: any) {
+      toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+    }
   };
 
-  // Table columns
   const columns = [
     {
       key: 'name',
-      label: 'اسم الشركة',
       header: 'اسم الشركة',
-      render: (customer: Customer) => (
-        <Link
-          to={`/customers/${customer.customer_id}`}
-          className="text-blue-600 hover:underline font-medium"
-        >
-          {customer.name}
-        </Link>
+      render: (c: Customer) => (
+        <Link to={`/customers/${c.customer_id}`} className="font-bold text-blue-600 hover:underline">{c.name}</Link>
       )
     },
-    { key: 'contact_person', label: 'اسم المسؤول', header: 'اسم المسؤول' },
-    { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
-    { key: 'address', label: 'العنوان', header: 'العنوان' },
     {
-      key: 'created_at',
-      label: 'تاريخ التكويد',
-      header: 'تاريخ التكويد',
-      render: (customer: Customer) => customer.created_at ? new Date(customer.created_at).toLocaleDateString('ar-EG') : '-'
+      key: 'contact_person',
+      header: 'اسم العميل (المسؤول)',
+      render: (c: Customer) => c.contact_person || 'لا يوجد مسؤول'
     },
+    { key: 'phone', header: 'رقم الهاتف' },
+    { key: 'address', header: 'العنوان' },
     {
       key: 'customer_id',
-      label: 'كود العميل',
       header: 'كود العميل',
-      width: '100px',
-      align: 'center' as const
+      align: 'center' as const,
+      width: '100px'
     },
     {
       key: 'actions',
-      label: 'الإجراءات',
       header: 'الإجراءات',
-      render: (customer: Customer) => (
+      align: 'left' as const,
+      render: (c: Customer) => (
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(customer)}
-          >
-            تعديل
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDelete(customer.customer_id)}
-          >
-            حذف
-          </Button>
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(c); }}>تعديل</Button>
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/customers/${c.customer_id}`); }}>تفاصيل</Button>
+          <Button variant="danger" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(c.customer_id); }}>حذف</Button>
         </div>
-      ),
-    },
+      )
+    }
   ];
 
   return (
-    <>
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-            fontSize: '14px',
-            direction: 'rtl',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-            duration: 4000,
-          },
-        }}
-      />
+    <div className="space-y-6 text-right" dir="rtl">
+      <Toaster position="top-center" />
 
-      <div className="space-y-6">
-        <Card
-          title="إدارة العملاء"
-          headerAction={
-            <Button onClick={() => {
-              if (!showForm) handleOpenForm();
-              else setShowForm(false);
-            }}>
-              {showForm ? 'إخفاء النموذج' : 'إضافة عميل جديد'}
-            </Button>
-          }
-        >
-          {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">
-                {isEditing ? 'تعديل عميل' : 'إضافة عميل جديد'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="كود العميل *"
-                  value={formData.customer_id}
-                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                  disabled={isEditing}
-                  placeholder="مثال: C00001"
-                  helperText={isEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
-                  required
-                />
-                <Input
-                  label="اسم الشركة *"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="اسم الشركة"
-                  required
-                />
-                <Input
-                  label="اسم المسئول"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  placeholder="اسم الشخص المسئول"
-                />
-                <Input
-                  label="ايميل الشركة"
-                  type="email"
-                  value={formData.company_email}
-                  onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                  placeholder="company@example.com"
-                />
-                <Input
-                  label="ايميل المسئول"
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                  placeholder="person@example.com"
-                />
-                <Input
-                  label="رقم الهاتف"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="01XXXXXXXXX"
-                />
-                <Input
-                  label="رقم هاتف إضافي"
-                  value={formData.secondary_phone}
-                  onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
-                  placeholder="01XXXXXXXXX"
-                />
-                <Input
-                  label="العنوان"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="العنوان الكامل"
-                />
-              </div>
-              <div className="flex gap-2 mt-4">
-                <Button type="submit">
-                  {isEditing ? 'تحديث' : 'إضافة'}
-                </Button>
-                <Button type="button" variant="secondary" onClick={handleCancel}>
-                  إلغاء
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {isLoading ? (
-            <div className="text-center py-8">جاري التحميل...</div>
-          ) : (
-            <Table
-              columns={columns}
-              data={customers}
-              emptyMessage="لا يوجد عملاء"
-            />
-          )}
-        </Card>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">إدارة العملاء</h1>
+          <p className="text-gray-500">مشاهدة وإدارة جميع بيانات العملاء في النظام</p>
+        </div>
+        <Button onClick={handleOpenAdd} className="flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          إضافة عميل جديد
+        </Button>
       </div>
-    </>
+
+      <Card>
+        <div className="mb-6">
+          <Input
+            placeholder="بحث بالاسم، الكود، أو رقم الهاتف..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">جاري تحميل العملاء...</p>
+          </div>
+        ) : (
+          <Table
+            columns={columns}
+            data={filteredCustomers}
+            emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد عملاء مضافين بعد'}
+            onRowClick={(c) => navigate(`/customers/${c.customer_id}`)}
+          />
+        )}
+      </Card>
+
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={isEditing ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="كود العميل *"
+              value={formData.customer_id}
+              onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+              disabled={isEditing}
+              required
+            />
+            <Input
+              label="اسم الشركة *"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="مثال: شركة النور للتجارة"
+              required
+            />
+            <Input
+              label="اسم المسئول"
+              value={formData.contact_person}
+              onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+              placeholder="اسم الشخص المسئول عن التواصل"
+            />
+            <Input
+              label="ايميل الشركة"
+              type="email"
+              value={formData.company_email}
+              onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
+              placeholder="company@example.com"
+            />
+            <Input
+              label="ايميل المسئول"
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+              placeholder="person@example.com"
+            />
+            <Input
+              label="رقم الهاتف"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="01XXXXXXXXX"
+            />
+            <Input
+              label="رقم هاتف إضافي"
+              value={formData.secondary_phone}
+              onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
+              placeholder="01XXXXXXXXX"
+            />
+            <div className="md:col-span-2">
+              <Input
+                label="العنوان"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="العنوان الكامل"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
+            <Button type="submit">{isEditing ? 'تحديث البيانات' : 'إضافة العميل'}</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };

@@ -1,8 +1,7 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prisma.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all quotations
 router.get('/', async (req, res) => {
@@ -11,7 +10,8 @@ router.get('/', async (req, res) => {
             orderBy: { quote_date: 'desc' },
             include: {
                 customer: true,
-                items: true
+                items: true,
+                project_type: true
             }
         });
         res.json(quotations);
@@ -30,7 +30,8 @@ router.get('/:id', async (req, res) => {
             where: { id: idInt },
             include: {
                 customer: true,
-                items: true
+                items: true,
+                project_type: true
             }
         });
         if (!quotation) {
@@ -48,7 +49,7 @@ router.post('/', async (req, res) => {
     try {
         const {
             customer_id,
-            project_type,
+            project_type_id,
             project_manager,
             project_name,
             quote_date,
@@ -64,7 +65,7 @@ router.post('/', async (req, res) => {
         const newQuotation = await prisma.quotation.create({
             data: {
                 customer_id,
-                project_type,
+                project_type_id,
                 project_manager,
                 project_name,
                 quote_date,
@@ -80,7 +81,8 @@ router.post('/', async (req, res) => {
             },
             include: {
                 customer: true,
-                items: true
+                items: true,
+                project_type: true
             }
         });
         res.json(newQuotation);
@@ -96,7 +98,7 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const {
             customer_id,
-            project_type,
+            project_type_id,
             project_manager,
             project_name,
             quote_date,
@@ -119,7 +121,7 @@ router.put('/:id', async (req, res) => {
             where: { id: idInt },
             data: {
                 customer_id,
-                project_type,
+                project_type_id,
                 project_manager,
                 project_name,
                 quote_date,
@@ -135,7 +137,8 @@ router.put('/:id', async (req, res) => {
             },
             include: {
                 customer: true,
-                items: true
+                items: true,
+                project_type: true
             }
         });
         res.json(updatedQuotation);

@@ -10,10 +10,14 @@ export interface Customer {
     secondary_phone?: string | null;
     address?: string | null;
     created_at?: string;
+    revenues?: any[];
+    quotations?: any[];
+    work_orders?: any[];
 }
 
 export const customerService = {
     getAll: () => api.get<Customer[]>('/customers'),
+    getById: (id: string) => api.get<Customer>(`/customers/${id}`),
 
     create: (data: Customer) => api.post<Customer>('/customers', data),
 

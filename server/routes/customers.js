@@ -1,96 +1,100 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../prisma.js';
+import asyncHandler from '../utils/asyncHandler.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Get all customers
-router.get('/', async (req, res) => {
-    try {
-        const customers = await prisma.customer.findMany({
-            orderBy: { name: 'asc' }
-        });
-        res.json(customers);
-    } catch (error) {
-        console.error('Error fetching customers:', error);
-        res.status(500).json({ error: 'Failed to fetch customers' });
+router.get('/', asyncHandler(async (req, res) => {
+    const customers = await prisma.customer.findMany({
+        orderBy: { name: 'asc' }
+    });
+    res.json(customers);
+}));
+
+// Get single customer with details
+router.get('/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const customer = await prisma.customer.findUnique({
+        where: { customer_id: id },
+        include: {
+            revenues: {
+                include: { type: true },
+                orderBy: { rev_date: 'desc' }
+            },
+            quotations: {
+                orderBy: { quote_date: 'desc' }
+            },
+            work_orders: true
+        }
+    });
+
+    if (!customer) {
+        res.status(404);
+        throw new Error('العميل غير موجود');
     }
-});
+
+    res.json(customer);
+}));
 
 // Create new customer
-router.post('/', async (req, res) => {
-    try {
-        const { customer_id, name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
+router.post('/', asyncHandler(async (req, res) => {
+    console.log('CREATE CUSTOMER ATTEMPT:', req.body);
+    const { customer_id, name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
 
-        // Check if ID exists
-        const existing = await prisma.customer.findUnique({
-            where: { customer_id }
-        });
+    // Check if ID exists
+    const existing = await prisma.customer.findUnique({
+        where: { customer_id }
+    });
 
-        if (existing) {
-            return res.status(400).json({ error: 'كود العميل موجود بالفعل' });
-        }
-
-        const newCustomer = await prisma.customer.create({
-            data: {
-                customer_id,
-                name,
-                contact_person,
-                company_email,
-                contact_email,
-                phone,
-                secondary_phone,
-                address
-            }
-        });
-        res.json(newCustomer);
-    } catch (error) {
-        console.error('Error creating customer:', error);
-        if (error.code === 'P2002') {
-            res.status(400).json({ error: 'كود العميل موجود بالفعل' });
-        } else {
-            res.status(500).json({ error: 'Failed to create customer' });
-        }
+    if (existing) {
+        res.status(400);
+        throw new Error('كود العميل موجود بالفعل');
     }
-});
+
+    const newCustomer = await prisma.customer.create({
+        data: {
+            customer_id,
+            name,
+            contact_person,
+            company_email,
+            contact_email,
+            phone,
+            secondary_phone,
+            address
+        }
+    });
+    res.status(201).json(newCustomer);
+}));
 
 // Update customer
-router.put('/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
+router.put('/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    console.log(`UPDATE CUSTOMER ${id} ATTEMPT:`, req.body);
+    const { name, contact_person, company_email, contact_email, phone, secondary_phone, address } = req.body;
 
-        const updatedCustomer = await prisma.customer.update({
-            where: { customer_id: id },
-            data: {
-                name,
-                contact_person,
-                company_email,
-                contact_email,
-                phone,
-                secondary_phone,
-                address
-            }
-        });
-        res.json(updatedCustomer);
-    } catch (error) {
-        console.error('Error updating customer:', error);
-        res.status(500).json({ error: 'Failed to update customer' });
-    }
-});
+    const updatedCustomer = await prisma.customer.update({
+        where: { customer_id: id },
+        data: {
+            name,
+            contact_person,
+            company_email,
+            contact_email,
+            phone,
+            secondary_phone,
+            address
+        }
+    });
+    res.json(updatedCustomer);
+}));
 
 // Delete customer
-router.delete('/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        await prisma.customer.delete({
-            where: { customer_id: id }
-        });
-        res.json({ message: 'Customer deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting customer:', error);
-        res.status(500).json({ error: 'Failed to delete customer' });
-    }
-});
+router.delete('/:id', asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    await prisma.customer.delete({
+        where: { customer_id: id }
+    });
+    res.json({ message: 'Customer deleted successfully' });
+}));
 
 export default router;

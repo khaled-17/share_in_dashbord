@@ -1,41 +1,29 @@
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import app from './app.js';
+import dotenv from 'dotenv';
 
-// Import Routes
-import customerRoutes from './routes/customers.js';
-import supplierRoutes from './routes/suppliers.js';
-import financeRoutesRevenue from './routes/revenue.js';
-import financeRoutesExpenses from './routes/expenses.js';
-import settingsRoutes from './routes/settings.js';
-import reviewRoutes from './routes/reviews.js';
-import employeeRoutes from './routes/employees.js';
-import shareenRoutes from './routes/shareen.js';
-import quotationRoutes from './routes/quotations.js';
-import workOrderRoutes from './routes/work_orders.js';
+// Load environment variables
+dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 3001;
 
-const app = express();
-const PORT = 3001;
+const server = app.listen(PORT, () => {
+  console.log('-----------------------------------------');
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📡 API Health Check: http://localhost:${PORT}/api/health`);
+  console.log('-----------------------------------------');
+});
 
-app.use(cors());
-app.use(express.json());
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error(`[Unhandled Rejection] Error: ${err.message}`);
+  // Close server & exit process
+  server.close(() => process.exit(1));
+});
 
-// API Routes
-app.use('/api/customers', customerRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/revenue', financeRoutesRevenue);
-app.use('/api/expenses', financeRoutesExpenses);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/shareen', shareenRoutes);
-app.use('/api/quotations', quotationRoutes);
-app.use('/api/work-orders', workOrderRoutes);
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM received. Shutting down gracefully');
+  server.close(() => {
+    console.log('💥 Process terminated!');
+  });
 });

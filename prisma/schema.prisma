@@ -133,10 +133,19 @@ model Shareen {
   @@map("shareen")
 }
 
+model ProjectType {
+  id           Int         @id @default(autoincrement())
+  type_id      String      @unique
+  type_name    String
+  quotations   Quotation[]
+
+  @@map("project_types")
+}
+
 model Quotation {
   id              Int             @id @default(autoincrement())
   customer_id     String
-  project_type    String?         // نوع المشروع
+  project_type_id String?         // ID of the project type
   project_manager String?         // المسؤول عن المشروع
   project_name    String?         // اسم المشروع
   quote_date      String
@@ -148,6 +157,7 @@ model Quotation {
   status          String          @default("مسودة")
   
   customer        Customer        @relation(fields: [customer_id], references: [customer_id])
+  project_type    ProjectType?    @relation(fields: [project_type_id], references: [type_id])
   items           QuotationItem[]
   work_orders     WorkOrder[]
 

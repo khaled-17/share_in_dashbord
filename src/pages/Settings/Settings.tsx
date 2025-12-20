@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input, Select } from '../../components/ui';
+import { useState, useEffect } from 'react';
+import { Card, Button, Table, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { settingsService } from '../../services/settings';
-import type { ExpenseType, RevenueType } from '../../services/settings';
+import { settingsService, type ExpenseType, type RevenueType, type ProjectType } from '../../services/settings';
 
-type TabType = 'expense' | 'revenue';
+type TabType = 'expense' | 'revenue' | 'project';
 
 export const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('expense');
@@ -33,29 +32,116 @@ export const Settings: React.FC = () => {
     });
     const [revenueShowForm, setRevenueShowForm] = useState(false);
 
-    // Payment method options
-    const paymentMethods = [
-        { value: 'cash', label: 'نقدي' },
-        { value: 'bank', label: 'تحويل بنكي' },
-        { value: 'check', label: 'شيك' },
-        { value: 'other', label: 'أخرى' },
-    ];
+    // Project Types State
+    const [projectTypes, setProjectTypes] = useState<ProjectType[]>([]);
+    const [projectLoading, setProjectLoading] = useState(true);
+    const [projectEditing, setProjectEditing] = useState(false);
+    const [projectCurrentId, setProjectCurrentId] = useState<number | null>(null);
+    const [projectFormData, setProjectFormData] = useState({
+        type_id: '',
+        type_name: ''
+    });
+    const [projectShowForm, setProjectShowForm] = useState(false);
 
-    // ========== EXPENSE TYPES FUNCTIONS ==========
-
-    const generateNextExpenseId = () => {
-        if (expenseTypes.length === 0) return 'EXP001';
-        const validIds = expenseTypes
-            .map(e => e.exptype_id)
-            .filter(id => /^EXP\d+$/.test(id))
-            .map(id => parseInt(id.substring(3)))
-            .filter(num => !isNaN(num));
-        if (validIds.length === 0) return 'EXP001';
-        const maxId = Math.max(...validIds);
-        const nextNum = maxId + 1;
-        return 'EXP' + nextNum.toString().padStart(3, '0');
+    // ========== GENERAL FUNCTIONS ==========
+    const fetchData = async () => {
+        await Promise.all([
+            fetchExpenseTypes(),
+            fetchRevenueTypes(),
+            fetchProjectTypes()
+        ]);
     };
 
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    // ========== PROJECT TYPES FUNCTIONS ==========
+    const generateNextProjectId = () => {
+        if (projectTypes.length === 0) return 'PRJ001';
+        const validIds = projectTypes
+            .map(p => p.type_id)
+            .filter(id => /^PRJ\d+$/.test(id))
+            .map(id => parseInt(id.substring(3)))
+            .filter(num => !isNaN(num));
+        if (validIds.length === 0) return 'PRJ001';
+        const maxId = Math.max(...validIds);
+        const nextNum = maxId + 1;
+        return 'PRJ' + nextNum.toString().padStart(3, '0');
+    };
+
+    const fetchProjectTypes = async () => {
+        try {
+            setProjectLoading(true);
+            const data = await settingsService.getProjectTypes();
+            setProjectTypes(data || []);
+        } catch (err: any) {
+            toast.error('فشل في تحميل أنواع المشاريع: ' + err.message);
+        } finally {
+            setProjectLoading(false);
+        }
+    };
+
+    const handleProjectSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!projectFormData.type_id.trim() || !projectFormData.type_name.trim()) {
+            toast.error('كود النوع والاسم مطلوبان');
+            return;
+        }
+
+        const loadingToast = toast.loading(projectEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
+
+        try {
+            if (projectEditing && projectCurrentId !== null) {
+                await settingsService.updateProjectType(projectCurrentId, {
+                    type_name: projectFormData.type_name,
+                });
+                toast.success('تم تحديث نوع المشروع بنجاح', { id: loadingToast });
+            } else {
+                await settingsService.createProjectType({
+                    type_id: projectFormData.type_id.trim(),
+                    type_name: projectFormData.type_name,
+                });
+                toast.success('تم إضافة نوع المشروع بنجاح', { id: loadingToast });
+            }
+
+            handleProjectCancel();
+            await fetchProjectTypes();
+        } catch (err: any) {
+            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+        }
+    };
+
+    const handleProjectEdit = (type: ProjectType) => {
+        setProjectEditing(true);
+        setProjectCurrentId(type.id);
+        setProjectFormData({
+            type_id: type.type_id,
+            type_name: type.type_name,
+        });
+        setProjectShowForm(true);
+    };
+
+    const handleProjectDelete = async (id: number) => {
+        if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
+        const loadingToast = toast.loading('جاري الحذف...');
+        try {
+            await settingsService.deleteProjectType(id);
+            toast.success('تم حذف نوع المشروع بنجاح', { id: loadingToast });
+            await fetchProjectTypes();
+        } catch (err: any) {
+            toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+        }
+    };
+
+    const handleProjectCancel = () => {
+        setProjectFormData({ type_id: '', type_name: '' });
+        setProjectShowForm(false);
+        setProjectEditing(false);
+        setProjectCurrentId(null);
+    };
+
+    // ========== EXPENSE TYPES FUNCTIONS ==========
     const fetchExpenseTypes = async () => {
         try {
             setExpenseLoading(true);
@@ -68,26 +154,13 @@ export const Settings: React.FC = () => {
         }
     };
 
-    const handleExpenseOpenForm = () => {
-        setExpenseShowForm(true);
-        if (!expenseEditing) {
-            setExpenseFormData({
-                exptype_id: generateNextExpenseId(),
-                exptype_name: '',
-                category: ''
-            });
-        }
-    };
-
     const handleExpenseSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!expenseFormData.exptype_id.trim() || !expenseFormData.exptype_name.trim()) {
             toast.error('كود النوع والاسم مطلوبان');
             return;
         }
-
         const loadingToast = toast.loading(expenseEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
-
         try {
             if (expenseEditing && expenseCurrentId !== null) {
                 await settingsService.updateExpenseType(expenseCurrentId, {
@@ -103,41 +176,10 @@ export const Settings: React.FC = () => {
                 });
                 toast.success('تم إضافة نوع المصروف بنجاح', { id: loadingToast });
             }
-
-            setExpenseFormData({ exptype_id: '', exptype_name: '', category: '' });
-            setExpenseShowForm(false);
-            setExpenseEditing(false);
-            setExpenseCurrentId(null);
+            handleExpenseCancel();
             await fetchExpenseTypes();
         } catch (err: any) {
-            if (err.message && err.message.includes('exists')) {
-                toast.error(`كود النوع "${expenseFormData.exptype_id}" موجود بالفعل`, { id: loadingToast });
-            } else {
-                toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
-            }
-        }
-    };
-
-    const handleExpenseEdit = (expenseType: ExpenseType) => {
-        setExpenseEditing(true);
-        setExpenseCurrentId(expenseType.id);
-        setExpenseFormData({
-            exptype_id: expenseType.exptype_id,
-            exptype_name: expenseType.exptype_name,
-            category: expenseType.category || '',
-        });
-        setExpenseShowForm(true);
-    };
-
-    const handleExpenseDelete = async (id: number) => {
-        if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
-        const loadingToast = toast.loading('جاري الحذف...');
-        try {
-            await settingsService.deleteExpenseType(id);
-            toast.success('تم حذف نوع المصروف بنجاح', { id: loadingToast });
-            await fetchExpenseTypes();
-        } catch (err: any) {
-            toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
         }
     };
 
@@ -148,21 +190,19 @@ export const Settings: React.FC = () => {
         setExpenseCurrentId(null);
     };
 
-    // ========== REVENUE TYPES FUNCTIONS ==========
-
-    const generateNextRevenueId = () => {
-        if (revenueTypes.length === 0) return 'REV001';
-        const validIds = revenueTypes
-            .map(r => r.revtype_id)
-            .filter(id => /^REV\d+$/.test(id))
-            .map(id => parseInt(id.substring(3)))
-            .filter(num => !isNaN(num));
-        if (validIds.length === 0) return 'REV001';
-        const maxId = Math.max(...validIds);
-        const nextNum = maxId + 1;
-        return 'REV' + nextNum.toString().padStart(3, '0');
+    const handleExpenseEdit = (t: ExpenseType) => {
+        setExpenseEditing(true);
+        setExpenseCurrentId(t.id);
+        setExpenseFormData({ exptype_id: t.exptype_id, exptype_name: t.exptype_name, category: t.category || '' });
+        setExpenseShowForm(true);
     };
 
+    const handleExpenseDelete = async (id: number) => {
+        if (!confirm('هل أنت متأكد؟')) return;
+        try { await settingsService.deleteExpenseType(id); fetchExpenseTypes(); } catch (e) { }
+    };
+
+    // ========== REVENUE TYPES FUNCTIONS ==========
     const fetchRevenueTypes = async () => {
         try {
             setRevenueLoading(true);
@@ -175,77 +215,19 @@ export const Settings: React.FC = () => {
         }
     };
 
-    const handleRevenueOpenForm = () => {
-        setRevenueShowForm(true);
-        if (!revenueEditing) {
-            setRevenueFormData({
-                revtype_id: generateNextRevenueId(),
-                revtype_name: '',
-                paymethod: 'cash'
-            });
-        }
-    };
-
     const handleRevenueSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!revenueFormData.revtype_id.trim() || !revenueFormData.revtype_name.trim()) {
-            toast.error('كود النوع والاسم مطلوبان');
-            return;
-        }
-
-        const loadingToast = toast.loading(revenueEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
-
+        const loadingToast = toast.loading('جاري الحفظ...');
         try {
-            if (revenueEditing && revenueCurrentId !== null) {
-                await settingsService.updateRevenueType(revenueCurrentId, {
-                    revtype_name: revenueFormData.revtype_name,
-                    paymethod: revenueFormData.paymethod,
-                });
-                toast.success('تم تحديث نوع الإيراد بنجاح', { id: loadingToast });
+            if (revenueEditing && revenueCurrentId) {
+                await settingsService.updateRevenueType(revenueCurrentId, revenueFormData);
             } else {
-                await settingsService.createRevenueType({
-                    revtype_id: revenueFormData.revtype_id.trim(),
-                    revtype_name: revenueFormData.revtype_name,
-                    paymethod: revenueFormData.paymethod,
-                });
-                toast.success('تم إضافة نوع الإيراد بنجاح', { id: loadingToast });
+                await settingsService.createRevenueType(revenueFormData);
             }
-
-            setRevenueFormData({ revtype_id: '', revtype_name: '', paymethod: 'cash' });
-            setRevenueShowForm(false);
-            setRevenueEditing(false);
-            setRevenueCurrentId(null);
-            await fetchRevenueTypes();
-        } catch (err: any) {
-            if (err.message && err.message.includes('exists')) {
-                toast.error(`كود النوع "${revenueFormData.revtype_id}" موجود بالفعل`, { id: loadingToast });
-            } else {
-                toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
-            }
-        }
-    };
-
-    const handleRevenueEdit = (revenueType: RevenueType) => {
-        setRevenueEditing(true);
-        setRevenueCurrentId(revenueType.id);
-        setRevenueFormData({
-            revtype_id: revenueType.revtype_id,
-            revtype_name: revenueType.revtype_name,
-            paymethod: revenueType.paymethod || 'cash',
-        });
-        setRevenueShowForm(true);
-    };
-
-    const handleRevenueDelete = async (id: number) => {
-        if (!confirm('هل أنت متأكد من حذف هذا النوع؟')) return;
-        const loadingToast = toast.loading('جاري الحذف...');
-        try {
-            await settingsService.deleteRevenueType(id);
-            toast.success('تم حذف نوع الإيراد بنجاح', { id: loadingToast });
-            await fetchRevenueTypes();
-        } catch (err: any) {
-            toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
-        }
+            handleRevenueCancel();
+            fetchRevenueTypes();
+            toast.success('تم الحفظ', { id: loadingToast });
+        } catch (e: any) { toast.error(e.message, { id: loadingToast }); }
     };
 
     const handleRevenueCancel = () => {
@@ -255,250 +237,133 @@ export const Settings: React.FC = () => {
         setRevenueCurrentId(null);
     };
 
-    // ========== TABLE COLUMNS ==========
+    const handleRevenueEdit = (t: RevenueType) => {
+        setRevenueEditing(true);
+        setRevenueCurrentId(t.id);
+        setRevenueFormData({ revtype_id: t.revtype_id, revtype_name: t.revtype_name, paymethod: t.paymethod });
+        setRevenueShowForm(true);
+    };
 
-    const expenseColumns = [
-        { key: 'exptype_id', label: 'كود النوع', header: 'كود النوع' },
-        { key: 'exptype_name', label: 'اسم النوع', header: 'اسم النوع' },
-        { key: 'category', label: 'التصنيف', header: 'التصنيف' },
+    // ========== COLUMNS ==========
+    const projectColumns = [
+        { key: 'type_id', header: 'كود النوع' },
+        { key: 'type_name', header: 'اسم النوع' },
         {
             key: 'actions',
-            label: 'الإجراءات',
             header: 'الإجراءات',
-            render: (expenseType: ExpenseType) => (
+            render: (type: ProjectType) => (
                 <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => handleExpenseEdit(expenseType)}>
-                        تعديل
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleExpenseDelete(expenseType.id)}>
-                        حذف
-                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleProjectEdit(type)}>تعديل</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleProjectDelete(type.id)}>حذف</Button>
                 </div>
-            ),
-        },
+            )
+        }
+    ];
+
+    const expenseColumns = [
+        { key: 'exptype_id', header: 'كود النوع' },
+        { key: 'exptype_name', header: 'اسم النوع' },
+        {
+            key: 'actions',
+            header: 'الإجراءات',
+            render: (t: ExpenseType) => (
+                <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => handleExpenseEdit(t)}>تعديل</Button>
+                    <Button variant="danger" size="sm" onClick={() => handleExpenseDelete(t.id)}>حذف</Button>
+                </div>
+            )
+        }
     ];
 
     const revenueColumns = [
-        { key: 'revtype_id', label: 'كود النوع', header: 'كود النوع' },
-        { key: 'revtype_name', label: 'اسم النوع', header: 'اسم النوع' },
-        {
-            key: 'paymethod',
-            label: 'طريقة الدفع',
-            header: 'طريقة الدفع',
-            render: (row: RevenueType) => {
-                const method = paymentMethods.find(m => m.value === row.paymethod);
-                return method ? method.label : row.paymethod;
-            }
-        },
+        { key: 'revtype_id', header: 'كود النوع' },
+        { key: 'revtype_name', header: 'اسم النوع' },
         {
             key: 'actions',
-            label: 'الإجراءات',
             header: 'الإجراءات',
-            render: (revenueType: RevenueType) => (
+            render: (t: RevenueType) => (
                 <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => handleRevenueEdit(revenueType)}>
-                        تعديل
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleRevenueDelete(revenueType.id)}>
-                        حذف
-                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleRevenueEdit(t)}>تعديل</Button>
                 </div>
-            ),
-        },
+            )
+        }
     ];
 
-    // ========== EFFECTS ==========
-
-    useEffect(() => {
-        fetchExpenseTypes();
-        fetchRevenueTypes();
-    }, []);
-
-    // ========== RENDER ==========
-
     return (
-        <>
-            <Toaster
-                position="top-center"
-                reverseOrder={false}
-                toastOptions={{
-                    duration: 3000,
-                    style: {
-                        background: '#363636',
-                        color: '#fff',
-                        fontSize: '14px',
-                        direction: 'rtl',
-                    },
-                    success: {
-                        iconTheme: {
-                            primary: '#10b981',
-                            secondary: '#fff',
-                        },
-                    },
-                    error: {
-                        iconTheme: {
-                            primary: '#ef4444',
-                            secondary: '#fff',
-                        },
-                        duration: 4000,
-                    },
-                }}
-            />
+        <div className="space-y-6 text-right" dir="rtl">
+            <Toaster position="top-center" />
+            <Card title="الإعدادات">
+                <div className="flex gap-4 mb-6 border-b pb-4">
+                    <button onClick={() => setActiveTab('expense')} className={`pb-2 px-4 ${activeTab === 'expense' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع المصروفات</button>
+                    <button onClick={() => setActiveTab('revenue')} className={`pb-2 px-4 ${activeTab === 'revenue' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع الإيرادات</button>
+                    <button onClick={() => setActiveTab('project')} className={`pb-2 px-4 ${activeTab === 'project' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع المشاريع</button>
+                </div>
 
-            <div className="space-y-6">
-                {/* Tabs */}
-                <Card>
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
-                            <button
-                                onClick={() => setActiveTab('expense')}
-                                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'expense'
-                                    ? 'bg-white text-primary-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                أنواع المصروفات
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('revenue')}
-                                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${activeTab === 'revenue'
-                                    ? 'bg-white text-primary-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                أنواع الإيرادات
-                            </button>
-                        </div>
+                <div className="flex justify-end mb-4">
+                    <Button onClick={() => {
+                        if (activeTab === 'expense') setExpenseShowForm(!expenseShowForm);
+                        else if (activeTab === 'revenue') setRevenueShowForm(!revenueShowForm);
+                        else {
+                            if (!projectShowForm) {
+                                setProjectShowForm(true);
+                                setProjectFormData({ type_id: generateNextProjectId(), type_name: '' });
+                            } else setProjectShowForm(false);
+                        }
+                    }}>
+                        {activeTab === 'expense' ? (expenseShowForm ? 'إخفاء' : 'إضافة') :
+                            activeTab === 'revenue' ? (revenueShowForm ? 'إخفاء' : 'إضافة') :
+                                (projectShowForm ? 'إخفاء' : 'إضافة نوع مشروع')}
+                    </Button>
+                </div>
 
-                        <Button
-                            onClick={() => {
-                                if (activeTab === 'expense') {
-                                    if (!expenseShowForm) handleExpenseOpenForm();
-                                    else setExpenseShowForm(false);
-                                } else {
-                                    if (!revenueShowForm) handleRevenueOpenForm();
-                                    else setRevenueShowForm(false);
-                                }
-                            }}
-                        >
-                            {activeTab === 'expense'
-                                ? (expenseShowForm ? 'إخفاء النموذج' : 'إضافة نوع مصروف')
-                                : (revenueShowForm ? 'إخفاء النموذج' : 'إضافة نوع إيراد')
-                            }
-                        </Button>
-                    </div>
+                {activeTab === 'project' && (
+                    <>
+                        {projectShowForm && (
+                            <form onSubmit={handleProjectSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="كود النوع *" value={projectFormData.type_id} onChange={e => setProjectFormData({ ...projectFormData, type_id: e.target.value })} disabled={projectEditing} required />
+                                <Input label="اسم النوع *" value={projectFormData.type_name} onChange={e => setProjectFormData({ ...projectFormData, type_name: e.target.value })} required />
+                                <div className="flex gap-2 mt-4">
+                                    <Button type="submit">{projectEditing ? 'تحديث' : 'إضافة'}</Button>
+                                    <Button type="button" variant="secondary" onClick={handleProjectCancel}>إلغاء</Button>
+                                </div>
+                            </form>
+                        )}
+                        {projectLoading ? <div className="text-center py-8">جاري التحميل...</div> : <Table columns={projectColumns} data={projectTypes} />}
+                    </>
+                )}
 
-                    {/* Expense Types Tab */}
-                    {activeTab === 'expense' && (
-                        <>
-                            {expenseShowForm && (
-                                <form onSubmit={handleExpenseSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="text-lg font-semibold mb-4">
-                                        {expenseEditing ? 'تعديل نوع مصروف' : 'إضافة نوع مصروف جديد'}
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <Input
-                                            label="كود النوع *"
-                                            value={expenseFormData.exptype_id}
-                                            onChange={(e) => setExpenseFormData({ ...expenseFormData, exptype_id: e.target.value })}
-                                            disabled={expenseEditing}
-                                            placeholder="مثال: EXP001"
-                                            helperText={expenseEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
-                                            required
-                                        />
-                                        <Input
-                                            label="اسم النوع *"
-                                            value={expenseFormData.exptype_name}
-                                            onChange={(e) => setExpenseFormData({ ...expenseFormData, exptype_name: e.target.value })}
-                                            placeholder="مثال: وقود"
-                                            required
-                                        />
-                                        <Input
-                                            label="التصنيف"
-                                            value={expenseFormData.category}
-                                            onChange={(e) => setExpenseFormData({ ...expenseFormData, category: e.target.value })}
-                                            placeholder="مثال: تشغيلي، إداري"
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 mt-4">
-                                        <Button type="submit">
-                                            {expenseEditing ? 'تحديث' : 'إضافة'}
-                                        </Button>
-                                        <Button type="button" variant="secondary" onClick={handleExpenseCancel}>
-                                            إلغاء
-                                        </Button>
-                                    </div>
-                                </form>
-                            )}
+                {activeTab === 'expense' && (
+                    <>
+                        {expenseShowForm && (
+                            <form onSubmit={handleExpenseSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input label="كود النوع *" value={expenseFormData.exptype_id} onChange={e => setExpenseFormData({ ...expenseFormData, exptype_id: e.target.value })} disabled={expenseEditing} required />
+                                <Input label="اسم النوع *" value={expenseFormData.exptype_name} onChange={e => setExpenseFormData({ ...expenseFormData, exptype_name: e.target.value })} required />
+                                <div className="flex gap-2 mt-4">
+                                    <Button type="submit">{expenseEditing ? 'تحديث' : 'إضافة'}</Button>
+                                    <Button type="button" variant="secondary" onClick={handleExpenseCancel}>إلغاء</Button>
+                                </div>
+                            </form>
+                        )}
+                        {expenseLoading ? <div className="text-center py-8">جاري التحميل...</div> : <Table columns={expenseColumns} data={expenseTypes} />}
+                    </>
+                )}
 
-                            {expenseLoading ? (
-                                <div className="text-center py-8">جاري التحميل...</div>
-                            ) : (
-                                <Table
-                                    columns={expenseColumns}
-                                    data={expenseTypes}
-                                    emptyMessage="لا يوجد أنواع مصروفات"
-                                />
-                            )}
-                        </>
-                    )}
-
-                    {/* Revenue Types Tab */}
-                    {activeTab === 'revenue' && (
-                        <>
-                            {revenueShowForm && (
-                                <form onSubmit={handleRevenueSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="text-lg font-semibold mb-4">
-                                        {revenueEditing ? 'تعديل نوع إيراد' : 'إضافة نوع إيراد جديد'}
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <Input
-                                            label="كود النوع *"
-                                            value={revenueFormData.revtype_id}
-                                            onChange={(e) => setRevenueFormData({ ...revenueFormData, revtype_id: e.target.value })}
-                                            disabled={revenueEditing}
-                                            placeholder="مثال: REV001"
-                                            helperText={revenueEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
-                                            required
-                                        />
-                                        <Input
-                                            label="اسم النوع *"
-                                            value={revenueFormData.revtype_name}
-                                            onChange={(e) => setRevenueFormData({ ...revenueFormData, revtype_name: e.target.value })}
-                                            placeholder="مثال: مبيعات، خدمات"
-                                            required
-                                        />
-                                        <Select
-                                            label="طريقة الدفع الافتراضية"
-                                            value={revenueFormData.paymethod}
-                                            onChange={(e) => setRevenueFormData({ ...revenueFormData, paymethod: e.target.value })}
-                                            options={paymentMethods}
-                                        />
-                                    </div>
-                                    <div className="flex gap-2 mt-4">
-                                        <Button type="submit">
-                                            {revenueEditing ? 'تحديث' : 'إضافة'}
-                                        </Button>
-                                        <Button type="button" variant="secondary" onClick={handleRevenueCancel}>
-                                            إلغاء
-                                        </Button>
-                                    </div>
-                                </form>
-                            )}
-
-                            {revenueLoading ? (
-                                <div className="text-center py-8">جاري التحميل...</div>
-                            ) : (
-                                <Table
-                                    columns={revenueColumns}
-                                    data={revenueTypes}
-                                    emptyMessage="لا يوجد أنواع إيرادات"
-                                />
-                            )}
-                        </>
-                    )}
-                </Card>
-            </div>
-        </>
+                {activeTab === 'revenue' && (
+                    <>
+                        {revenueShowForm && (
+                            <form onSubmit={handleRevenueSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Input label="كود النوع *" value={revenueFormData.revtype_id} onChange={e => setRevenueFormData({ ...revenueFormData, revtype_id: e.target.value })} disabled={revenueEditing} required />
+                                <Input label="اسم النوع *" value={revenueFormData.revtype_name} onChange={e => setRevenueFormData({ ...revenueFormData, revtype_name: e.target.value })} required />
+                                <div className="flex gap-2 mt-4">
+                                    <Button type="submit">{revenueEditing ? 'تحديث' : 'إضافة'}</Button>
+                                    <Button type="button" variant="secondary" onClick={handleRevenueCancel}>إلغاء</Button>
+                                </div>
+                            </form>
+                        )}
+                        {revenueLoading ? <div className="text-center py-8">جاري التحميل...</div> : <Table columns={revenueColumns} data={revenueTypes} />}
+                    </>
+                )}
+            </Card>
+        </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { quotationService } from '../../services/quotations';
@@ -7,7 +7,7 @@ import { quotationService } from '../../services/quotations';
 interface QuotationDetailsData {
     id: number;
     customer_id: string;
-    project_type?: string | null;
+    project_type?: any;
     project_manager?: string | null;
     project_name?: string | null;
     quote_date: string;
@@ -42,6 +42,7 @@ export const QuotationDetails: React.FC = () => {
             setQuotation({
                 ...data,
                 customer_name: data.customer?.name,
+                project_type: data.project_type?.type_name || data.project_type_id
             });
         } catch (err: any) {
             toast.error('فشل في تحميل تفاصيل عرض السعر: ' + err.message);

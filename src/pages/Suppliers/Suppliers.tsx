@@ -1,49 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input } from '../../components/ui';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Button, Table, Input, Modal } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { supplierService } from '../../services/suppliers';
 import type { Supplier } from '../../services/suppliers';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Suppliers: React.FC = () => {
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     supplier_id: '',
-    name: '', // اسم الشركة
-    contact_person: '', // اسم المسئول أو صاحب الشركة
+    name: '',
+    contact_person: '',
     email: '',
     phone: '',
     secondary_phone: '',
     address: '',
     speciality: ''
   });
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  // Filtered suppliers based on search
+  const filteredSuppliers = useMemo(() => {
+    if (!searchTerm.trim()) return suppliers;
+    const term = searchTerm.toLowerCase();
+    return suppliers.filter(s =>
+      s.name.toLowerCase().includes(term) ||
+      s.supplier_id.toLowerCase().includes(term) ||
+      (s.phone && s.phone.includes(term)) ||
+      (s.contact_person && s.contact_person.toLowerCase().includes(term)) ||
+      (s.speciality && s.speciality.toLowerCase().includes(term))
+    );
+  }, [suppliers, searchTerm]);
 
   // Generate next supplier ID
   const generateNextId = () => {
     if (suppliers.length === 0) return 'S001';
-
-    // Filter suppliers with valid format (S + numbers)
     const validIds = suppliers
       .map(s => s.supplier_id)
       .filter(id => /^S\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
-
-    // If no valid IDs found, start from 1
     if (validIds.length === 0) return 'S001';
-
-    // Find the maximum ID and increment
     const maxId = Math.max(...validIds);
-    const nextNum = maxId + 1;
-    return 'S' + nextNum.toString().padStart(3, '0');
+    return 'S' + (maxId + 1).toString().padStart(3, '0');
   };
 
-  // Fetch suppliers from API
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true);
@@ -51,7 +58,6 @@ export const Suppliers: React.FC = () => {
       setSuppliers(data || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -61,76 +67,22 @@ export const Suppliers: React.FC = () => {
     fetchSuppliers();
   }, []);
 
-  // Open form for new supplier
-  const handleOpenForm = () => {
-    setShowForm(true);
-    if (!isEditing) {
-      setFormData({
-        supplier_id: generateNextId(),
-        name: '',
-        contact_person: '',
-        email: '',
-        phone: '',
-        secondary_phone: '',
-        address: '',
-        speciality: ''
-      });
-    }
+  const handleOpenAdd = () => {
+    setIsEditing(false);
+    setCurrentId(null);
+    setFormData({
+      supplier_id: generateNextId(),
+      name: '',
+      contact_person: '',
+      email: '',
+      phone: '',
+      secondary_phone: '',
+      address: '',
+      speciality: ''
+    });
+    setShowModal(true);
   };
 
-  // Add or update supplier
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.supplier_id.trim() || !formData.name.trim()) {
-      toast.error('كود المورد واسم الشركة مطلوبان');
-      return;
-    }
-
-    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
-
-    try {
-      const payload = {
-        name: formData.name.trim(),
-        contact_person: formData.contact_person.trim() || null,
-        email: formData.email.trim() || null,
-        phone: formData.phone.trim() || null,
-        secondary_phone: formData.secondary_phone.trim() || null,
-        address: formData.address.trim() || null,
-        speciality: formData.speciality.trim() || null,
-      };
-
-      if (isEditing && currentId !== null) {
-        // Update existing supplier
-        await supplierService.update(currentId, payload);
-        toast.success('تم تحديث بيانات المورد بنجاح', { id: loadingToast });
-      } else {
-        // Insert new supplier
-        try {
-          await supplierService.create({
-            supplier_id: formData.supplier_id.trim(),
-            ...payload
-          });
-          toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
-        } catch (error: any) {
-          if (error.message && error.message.includes('exists')) {
-            toast.error(`كود المورد "${formData.supplier_id}" موجود بالفعل. جرب كوداً آخر.`, { id: loadingToast, duration: 4000 });
-            return;
-          }
-          throw error;
-        }
-      }
-
-      // Reset form and refresh data
-      handleCancel();
-      await fetchSuppliers();
-    } catch (err: any) {
-      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
-      console.error(err);
-    }
-  };
-
-  // Edit supplier
   const handleEdit = (supplier: Supplier) => {
     setIsEditing(true);
     setCurrentId(supplier.id);
@@ -144,222 +96,202 @@ export const Suppliers: React.FC = () => {
       address: supplier.address || '',
       speciality: supplier.speciality || '',
     });
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  // Delete supplier
-  const handleDelete = async (id: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المورد؟')) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error('اسم المورد مطلوب');
+      return;
+    }
 
-    const loadingToast = toast.loading('جاري الحذف...');
-
+    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
     try {
-      await supplierService.delete(id);
+      const payload = {
+        name: formData.name.trim(),
+        contact_person: formData.contact_person.trim() || null,
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        secondary_phone: formData.secondary_phone.trim() || null,
+        address: formData.address.trim() || null,
+        speciality: formData.speciality.trim() || null,
+      };
 
-      toast.success('تم حذف المورد بنجاح', { id: loadingToast });
-      await fetchSuppliers();
+      if (isEditing && currentId !== null) {
+        await supplierService.update(currentId, payload);
+        toast.success('تم تحديث بيانات المورد بنجاح', { id: loadingToast });
+      } else {
+        await supplierService.create({
+          supplier_id: formData.supplier_id.trim(),
+          ...payload
+        });
+        toast.success('تم إضافة المورد بنجاح', { id: loadingToast });
+      }
+      setShowModal(false);
+      fetchSuppliers();
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
-      console.error(err);
+      toast.error(err.message || 'فشل في العملية', { id: loadingToast });
     }
   };
 
-  // Cancel form
-  const handleCancel = () => {
-    setFormData({
-      supplier_id: '',
-      name: '',
-      contact_person: '',
-      email: '',
-      phone: '',
-      secondary_phone: '',
-      address: '',
-      speciality: ''
-    });
-    setShowForm(false);
-    setIsEditing(false);
-    setCurrentId(null);
+  const handleDelete = async (id: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا المورد؟')) return;
+    const loadingToast = toast.loading('جاري الحذف...');
+    try {
+      await supplierService.delete(id);
+      toast.success('تم الحذف بنجاح', { id: loadingToast });
+      fetchSuppliers();
+    } catch (err: any) {
+      toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+    }
   };
 
-  // Table columns
   const columns = [
     {
       key: 'name',
-      label: 'اسم الشركة',
-      header: 'اسم الشركة',
-      render: (supplier: Supplier) => (
-        <Link
-          to={`/suppliers/${supplier.supplier_id}`}
-          className="text-blue-600 hover:underline font-medium"
-        >
-          {supplier.name}
-        </Link>
+      header: 'اسم المورد',
+      render: (s: Supplier) => (
+        <Link to={`/suppliers/${s.supplier_id}`} className="font-bold text-blue-600 hover:underline">{s.name}</Link>
       )
     },
-    { key: 'contact_person', label: 'المسئول', header: 'المسئول' },
-    { key: 'phone', label: 'رقم الهاتف', header: 'رقم الهاتف' },
-    { key: 'speciality', label: 'التخصص', header: 'التخصص' },
     {
-      key: 'created_at',
-      label: 'تاريخ التكويد',
-      header: 'تاريخ التكويد',
-      render: (supplier: Supplier) => supplier.created_at ? new Date(supplier.created_at).toLocaleDateString('ar-EG') : '-'
+      key: 'contact_person',
+      header: 'المسؤول',
+      render: (s: Supplier) => s.contact_person || 'غير محدد'
     },
+    { key: 'phone', header: 'رقم الهاتف' },
+    { key: 'speciality', header: 'التخصص' },
     {
       key: 'supplier_id',
-      label: 'كود المورد',
       header: 'كود المورد',
-      width: '100px',
-      align: 'center' as const
+      align: 'center' as const,
+      width: '100px'
     },
     {
       key: 'actions',
-      label: 'الإجراءات',
       header: 'الإجراءات',
-      render: (supplier: Supplier) => (
+      align: 'left' as const,
+      render: (s: Supplier) => (
         <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleEdit(supplier)}
-          >
-            تعديل
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => handleDelete(supplier.id)}
-          >
-            حذف
-          </Button>
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(s); }}>تعديل</Button>
+          <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/suppliers/${s.supplier_id}`); }}>تفاصيل</Button>
+          <Button variant="danger" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}>حذف</Button>
         </div>
-      ),
-    },
+      )
+    }
   ];
 
   return (
-    <>
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-            fontSize: '14px',
-            direction: 'rtl',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-            duration: 4000,
-          },
-        }}
-      />
+    <div className="space-y-6 text-right" dir="rtl">
+      <Toaster position="top-center" />
 
-      <div className="space-y-6">
-        <Card
-          title="إدارة الموردين"
-          headerAction={
-            <Button onClick={() => {
-              if (!showForm) handleOpenForm();
-              else setShowForm(false);
-            }}>
-              {showForm ? 'إخفاء النموذج' : 'إضافة مورد جديد'}
-            </Button>
-          }
-        >
-          {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4">
-                {isEditing ? 'تعديل مورد' : 'إضافة مورد جديد'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="كود المورد *"
-                  value={formData.supplier_id}
-                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                  disabled={isEditing}
-                  placeholder="مثال: S001"
-                  helperText={isEditing ? '' : 'تم توليد الكود تلقائياً - يمكنك تعديله'}
-                  required
-                />
-                <Input
-                  label="اسم الشركة *"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="اسم الشركة"
-                  required
-                />
-                <Input
-                  label="اسم المسئول / صاحب الشركة"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  placeholder="الاسم"
-                />
-                <Input
-                  label="ايميل المورد"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="supplier@example.com"
-                />
-                <Input
-                  label="رقم الهاتف"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="01XXXXXXXXX"
-                />
-                <Input
-                  label="رقم هاتف إضافي"
-                  value={formData.secondary_phone}
-                  onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
-                  placeholder="01XXXXXXXXX"
-                />
-                <Input
-                  label="العنوان"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="العنوان الكامل"
-                />
-                <Input
-                  label="التخصص"
-                  value={formData.speciality}
-                  onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
-                  placeholder="مثال: أدوات مكتبية، صيانة"
-                />
-              </div>
-              <div className="flex gap-2 mt-4">
-                <Button type="submit">
-                  {isEditing ? 'تحديث' : 'إضافة'}
-                </Button>
-                <Button type="button" variant="secondary" onClick={handleCancel}>
-                  إلغاء
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {isLoading ? (
-            <div className="text-center py-8">جاري التحميل...</div>
-          ) : (
-            <Table
-              columns={columns}
-              data={suppliers}
-              emptyMessage="لا يوجد موردين"
-            />
-          )}
-        </Card>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">إدارة الموردين</h1>
+          <p className="text-gray-500">مشاهدة وإدارة جميع بيانات الموردين في النظام</p>
+        </div>
+        <Button onClick={handleOpenAdd} className="flex items-center gap-2">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          إضافة مورد جديد
+        </Button>
       </div>
-    </>
+
+      <Card>
+        <div className="mb-6">
+          <Input
+            placeholder="بحث بالاسم، الكود، التخصص، أو رقم الهاتف..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">جاري تحميل الموردين...</p>
+          </div>
+        ) : (
+          <Table
+            columns={columns}
+            data={filteredSuppliers}
+            emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد موردين مضافين بعد'}
+            onRowClick={(s) => navigate(`/suppliers/${s.supplier_id}`)}
+          />
+        )}
+      </Card>
+
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={isEditing ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="كود المورد *"
+              value={formData.supplier_id}
+              onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+              disabled={isEditing}
+              required
+            />
+            <Input
+              label="اسم المورد / الشركة *"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="اسم الشركة"
+              required
+            />
+            <Input
+              label="اسم المسئول"
+              value={formData.contact_person}
+              onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+              placeholder="الاسم"
+            />
+            <Input
+              label="ايميل المورد"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="supplier@example.com"
+            />
+            <Input
+              label="رقم الهاتف"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="01XXXXXXXXX"
+            />
+            <Input
+              label="رقم هاتف إضافي"
+              value={formData.secondary_phone}
+              onChange={(e) => setFormData({ ...formData, secondary_phone: e.target.value })}
+              placeholder="01XXXXXXXXX"
+            />
+            <Input
+              label="التخصص"
+              value={formData.speciality}
+              onChange={(e) => setFormData({ ...formData, speciality: e.target.value })}
+              placeholder="مثال: صيانة، توريد أخشاب"
+            />
+            <div className="md:col-span-1">
+              <Input
+                label="العنوان"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="العنوان الكامل"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
+            <Button type="submit">{isEditing ? 'تحديث البيانات' : 'إضافة المورد'}</Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };

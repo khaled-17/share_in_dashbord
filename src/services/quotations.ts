@@ -9,10 +9,16 @@ export interface QuotationItem {
     total: number;
 }
 
+export interface ProjectType {
+    id: number;
+    type_id: string;
+    type_name: string;
+}
+
 export interface Quotation {
     id: number;
     customer_id: string;
-    project_type?: string | null;
+    project_type_id?: string | null;
     project_manager?: string | null;
     project_name?: string | null;
     quote_date: string;
@@ -23,6 +29,7 @@ export interface Quotation {
     receipt_no?: string | null;
     status: string;
     customer?: Customer;
+    project_type?: ProjectType;
     items?: QuotationItem[];
 }
 
@@ -45,5 +52,9 @@ export const quotationService = {
 
     delete: async (id: number): Promise<{ message: string }> => {
         return api.delete<{ message: string }>(`/quotations/${id}`);
+    },
+
+    getProjectTypes: async (): Promise<ProjectType[]> => {
+        return api.get<ProjectType[]>('/settings/project-types');
     }
 };

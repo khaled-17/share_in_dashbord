@@ -1,73 +1,81 @@
-# React + TypeScript + Vite
+# 📊 Share In Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+تطبيق نظام إدارة متكامل (Dashboard) مبني باستخدام **React**, **TypeScript**, و **Vite**. يتميز النظام بواجهة مستخدم حديثة وسهلة الاستخدام لإدارة العملاء، الموردين، الكوتيشنز، والتقييمات.
 
-Currently, two official plugins are available:
+## 🚀 التقنيات المستخدمة
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **Routing**: React Router DOM 7
+- **Database & Backend**: Prisma, Supabase, Express
+- **Testing**: Vitest, React Testing Library
+- **Icons**: Lucide React
+- **Notifications**: React Hot Toast
 
-## React Compiler
+## 🛠️ التثبيت والتشغيل المحلي
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **نسخ المستودع (Clone)**:
+   ```bash
+   git clone https://github.com/khaled-17/share_in_dashbord.git
+   cd share_in_dashbord
+   ```
 
-## Expanding the ESLint configuration
+2. **تثبيت المكتبات**:
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3. **إعداد متغيرات البيئة**:
+   قم بإنشاء ملف `.env` في المجلد الرئيسي وأضف فيه بيانات Supabase:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_key
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+4. **تشغيل المشروع**:
+   ```bash
+   npm run dev
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📦 النشر على GitHub Pages
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+تم إعداد المشروع للنشر التلقائي على GitHub Pages. اتبع الخطوات التالية:
+
+1. **تحديث الإعدادات**:
+   تأكد من أن `homepage` في `package.json` تشير إلى الرابط الصحيح:
+   `"homepage": "https://khaled-17.github.io/share_in_dashbord"`
+
+2. **تنفيذ عملية النشر**:
+   قم بتشغيل الأمر التالي:
+   ```bash
+   npm run deploy
+   ```
+   سيقوم هذا الأمر ببناء المشروع (`npm run build`) ثم رفعه إلى فرع `gh-pages`.
+
+3. **إعدادات GitHub**:
+   - اذهب إلى مستودع المشروع على GitHub.
+   - اختر **Settings** -> **Pages**.
+   - تأكد من اختيار الفرع `gh-pages` كمصدر للنشر.
+
+## 🔧 حل مشاكل التوجيه (Routing Fix)
+
+بما أن GitHub Pages لا يدعم Single Page Applications (SPA) بشكل افتراضي عند إعادة تحميل الصفحة (Refresh)، تم تطبيق حل برمجي باستخدام:
+- ملف `public/404.html` لإعادة توجيه المسارات غير الموجودة.
+- سكريبت في `index.html` لاستعادة المسار بعد إعادة التوجيه.
+- إعداد `base` ديناميكي في `vite.config.ts`.
+
+لمزيد من التفاصيل، راجع ملف [GITHUB_PAGES_FIX.md](./GITHUB_PAGES_FIX.md).
+
+## 🧪 الاختبارات
+
+لتشغيل الاختبارات:
+```bash
+npm run test
+```
+للحصول على تقرير التغطية:
+```bash
+npm run test:coverage
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📄 الترخيص
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+هذا المشروع مخصص للأغراض التعليمية والتطويرية.
