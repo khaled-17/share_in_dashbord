@@ -16,6 +16,10 @@ import employeeRoutes from './routes/employees.js';
 import shareenRoutes from './routes/shareen.js';
 import quotationRoutes from './routes/quotations.js';
 import workOrderRoutes from './routes/work_orders.js';
+import partnerRoutes from './routes/partners.js';
+import receiptVoucherRoutes from './routes/receiptVouchers.js';
+import paymentVoucherRoutes from './routes/paymentVouchers.js';
+import checkRoutes from './routes/checks.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +47,10 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/shareen', shareenRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/partners', partnerRoutes);
+app.use('/api/receipt-vouchers', receiptVoucherRoutes);
+app.use('/api/payment-vouchers', paymentVoucherRoutes);
+app.use('/api/checks', checkRoutes);
 
 // Global Error Handler (Must be last)
 app.use(errorHandler);
