@@ -15,6 +15,7 @@ import { SupplierDetails } from './pages/Suppliers/SupplierDetails';
 import { Shareen } from './pages/Shareen';
 import { Settings } from './pages/Settings';
 import { WorkOrders } from './pages/WorkOrders';
+import { Partners } from './pages/Partners';
 
 const RouteHandler = () => {
   const location = useLocation();
@@ -26,6 +27,9 @@ const RouteHandler = () => {
     }
     if (pathname.startsWith('/suppliers/') && pathname !== '/suppliers') {
       return { title: 'تفاصيل المورد', subtitle: 'عرض سجل عمليات المورد وتفاصيله' };
+    }
+    if (pathname.startsWith('/partners/') && pathname !== '/partners') {
+      return { title: 'تفاصيل الشريك', subtitle: 'عرض سجل رأس المال والمسحوبات' };
     }
 
     const routes: Record<string, { title: string; subtitle: string }> = {
@@ -73,6 +77,10 @@ const RouteHandler = () => {
         title: 'الإعدادات',
         subtitle: 'إدارة أنواع المصروفات والإيرادات'
       },
+      '/partners': {
+        title: 'إدارة الشركاء',
+        subtitle: 'إدارة بيانات الشركاء ورأس المال'
+      },
     };
 
     return routes[pathname] || { title: 'لوحة التحكم', subtitle: '' };
@@ -106,6 +114,7 @@ const RouteHandler = () => {
 
         <Route path="/shareen" element={<Shareen />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/partners" element={<Partners />} />
       </Routes>
     </MainLayout>
   );
