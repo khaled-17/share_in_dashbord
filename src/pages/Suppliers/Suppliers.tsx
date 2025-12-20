@@ -27,15 +27,20 @@ export const Suppliers: React.FC = () => {
 
   // Filtered suppliers based on search
   const filteredSuppliers = useMemo(() => {
-    if (!searchTerm.trim()) return suppliers;
+    if (!searchTerm.trim()) {
+      console.log('📋 All suppliers:', suppliers.length);
+      return suppliers;
+    }
     const term = searchTerm.toLowerCase();
-    return suppliers.filter(s =>
+    const filtered = suppliers.filter(s =>
       s.name.toLowerCase().includes(term) ||
       s.supplier_id.toLowerCase().includes(term) ||
       (s.phone && s.phone.includes(term)) ||
       (s.contact_person && s.contact_person.toLowerCase().includes(term)) ||
       (s.speciality && s.speciality.toLowerCase().includes(term))
     );
+    console.log('🔍 Filtered suppliers:', filtered.length);
+    return filtered;
   }, [suppliers, searchTerm]);
 
   // Generate next supplier ID
@@ -54,9 +59,12 @@ export const Suppliers: React.FC = () => {
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true);
+      console.log('🔄 Fetching suppliers...');
       const data = await supplierService.getAll();
+      console.log('✅ Suppliers received:', data);
       setSuppliers(data || []);
     } catch (err: any) {
+      console.error('❌ Error fetching suppliers:', err);
       toast.error('فشل في تحميل البيانات: ' + err.message);
     } finally {
       setIsLoading(false);
@@ -64,6 +72,7 @@ export const Suppliers: React.FC = () => {
   };
 
   useEffect(() => {
+    console.log('🚀 Suppliers component mounted, fetching data...');
     fetchSuppliers();
   }, []);
 
@@ -131,7 +140,12 @@ export const Suppliers: React.FC = () => {
       setShowModal(false);
       fetchSuppliers();
     } catch (err: any) {
-      toast.error(err.message || 'فشل في العملية', { id: loadingToast });
+      const errorMsg = err.message || '';
+      if (errorMsg.includes('بالفعل')) {
+        toast.error('عذراً، كود المورد هذا تم استخدامه مسبقاً، يرجى اختيار كود آخر', { id: loadingToast, duration: 5000 });
+      } else {
+        toast.error(errorMsg || 'فشل في العملية', { id: loadingToast });
+      }
     }
   };
 
@@ -215,12 +229,15 @@ export const Suppliers: React.FC = () => {
             <p className="text-gray-500">جاري تحميل الموردين...</p>
           </div>
         ) : (
-          <Table
-            columns={columns}
-            data={filteredSuppliers}
-            emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد موردين مضافين بعد'}
-            onRowClick={(s) => navigate(`/suppliers/${s.supplier_id}`)}
-          />
+          <>
+            {console.log('🎨 Rendering table with suppliers:', filteredSuppliers.length, 'Loading:', isLoading)}
+            <Table
+              columns={columns}
+              data={filteredSuppliers}
+              emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد موردين مضافين بعد'}
+              onRowClick={(s) => navigate(`/suppliers/${s.supplier_id}`)}
+            />
+          </>
         )}
       </Card>
 
