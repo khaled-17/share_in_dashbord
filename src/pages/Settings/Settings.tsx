@@ -2,15 +2,30 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Table, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { settingsService, type ExpenseType, type RevenueType, type ProjectType } from '../../services/settings';
+import { companyService, type CompanySettings } from '../../services/company';
 
-type TabType = 'expense' | 'revenue' | 'project';
+type TabType = 'expense' | 'revenue' | 'project' | 'company';
 
 export const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('expense');
 
+    // Company Settings State
+    const [companyInfo, setCompanyInfo] = useState<CompanySettings | null>(null);
+    const [companyLoading, setCompanyLoading] = useState(false);
+    const [companyFormData, setCompanyFormData] = useState({
+        name: '',
+        description: '',
+        about: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: ''
+    });
+
     // Expense Types State
     const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
     const [expenseLoading, setExpenseLoading] = useState(true);
+    // ... rest of state
     const [expenseEditing, setExpenseEditing] = useState(false);
     const [expenseCurrentId, setExpenseCurrentId] = useState<number | null>(null);
     const [expenseFormData, setExpenseFormData] = useState({
@@ -48,8 +63,44 @@ export const Settings: React.FC = () => {
         await Promise.all([
             fetchExpenseTypes(),
             fetchRevenueTypes(),
-            fetchProjectTypes()
+            fetchProjectTypes(),
+            fetchCompanyInfo()
         ]);
+    };
+
+    const fetchCompanyInfo = async () => {
+        try {
+            setCompanyLoading(true);
+            const data = await companyService.getSettings();
+            if (data) {
+                setCompanyInfo(data);
+                setCompanyFormData({
+                    name: data.name || '',
+                    description: data.description || '',
+                    about: data.about || '',
+                    address: data.address || '',
+                    phone: data.phone || '',
+                    email: data.email || '',
+                    website: data.website || ''
+                });
+            }
+        } catch (err: any) {
+            console.error('Failed to fetch company info:', err);
+        } finally {
+            setCompanyLoading(false);
+        }
+    };
+
+    const handleCompanySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const loadingToast = toast.loading('جاري تحديث بيانات الشركة...');
+        try {
+            await companyService.updateSettings(companyFormData);
+            toast.success('تم تحديث بيانات الشركة بنجاح', { id: loadingToast });
+            fetchCompanyInfo();
+        } catch (err: any) {
+            toast.error('فشل التحديث: ' + err.message, { id: loadingToast });
+        }
     };
 
     useEffect(() => {
@@ -297,24 +348,86 @@ export const Settings: React.FC = () => {
                     <button onClick={() => setActiveTab('expense')} className={`pb-2 px-4 ${activeTab === 'expense' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع المصروفات</button>
                     <button onClick={() => setActiveTab('revenue')} className={`pb-2 px-4 ${activeTab === 'revenue' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع الإيرادات</button>
                     <button onClick={() => setActiveTab('project')} className={`pb-2 px-4 ${activeTab === 'project' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع المشاريع</button>
+                    <button onClick={() => setActiveTab('company')} className={`pb-2 px-4 ${activeTab === 'company' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>ملف الشركة</button>
                 </div>
 
                 <div className="flex justify-end mb-4">
-                    <Button onClick={() => {
-                        if (activeTab === 'expense') setExpenseShowForm(!expenseShowForm);
-                        else if (activeTab === 'revenue') setRevenueShowForm(!revenueShowForm);
-                        else {
-                            if (!projectShowForm) {
-                                setProjectShowForm(true);
-                                setProjectFormData({ type_id: generateNextProjectId(), type_name: '' });
-                            } else setProjectShowForm(false);
-                        }
-                    }}>
-                        {activeTab === 'expense' ? (expenseShowForm ? 'إخفاء' : 'إضافة') :
-                            activeTab === 'revenue' ? (revenueShowForm ? 'إخفاء' : 'إضافة') :
-                                (projectShowForm ? 'إخفاء' : 'إضافة نوع مشروع')}
-                    </Button>
+                    {activeTab !== 'company' && (
+                        <Button onClick={() => {
+                            if (activeTab === 'expense') setExpenseShowForm(!expenseShowForm);
+                            else if (activeTab === 'revenue') setRevenueShowForm(!revenueShowForm);
+                            else {
+                                if (!projectShowForm) {
+                                    setProjectShowForm(true);
+                                    setProjectFormData({ type_id: generateNextProjectId(), type_name: '' });
+                                } else setProjectShowForm(false);
+                            }
+                        }}>
+                            {activeTab === 'expense' ? (expenseShowForm ? 'إخفاء' : 'إضافة') :
+                                activeTab === 'revenue' ? (revenueShowForm ? 'إخفاء' : 'إضافة') :
+                                    (projectShowForm ? 'إخفاء' : 'إضافة نوع مشروع')}
+                        </Button>
+                    )}
                 </div>
+
+                {activeTab === 'company' && (
+                    <div className="max-w-4xl mx-auto">
+                        <form onSubmit={handleCompanySubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="md:col-span-2">
+                                    <Input
+                                        label="اسم الشركة *"
+                                        value={companyFormData.name}
+                                        onChange={e => setCompanyFormData({ ...companyFormData, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">وصف مختصر للنشاط (يظهر في الهيدر) *</label>
+                                    <textarea
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-right"
+                                        rows={3}
+                                        value={companyFormData.description}
+                                        onChange={e => setCompanyFormData({ ...companyFormData, description: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">عن الشركة (يظهر في الموقف المالي)</label>
+                                    <textarea
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-right"
+                                        rows={4}
+                                        value={companyFormData.about}
+                                        onChange={e => setCompanyFormData({ ...companyFormData, about: e.target.value })}
+                                    />
+                                </div>
+                                <Input
+                                    label="العنوان"
+                                    value={companyFormData.address}
+                                    onChange={e => setCompanyFormData({ ...companyFormData, address: e.target.value })}
+                                />
+                                <Input
+                                    label="رقم الهاتف"
+                                    value={companyFormData.phone}
+                                    onChange={e => setCompanyFormData({ ...companyFormData, phone: e.target.value })}
+                                />
+                                <Input
+                                    label="البريد الإلكتروني"
+                                    value={companyFormData.email}
+                                    onChange={e => setCompanyFormData({ ...companyFormData, email: e.target.value })}
+                                />
+                                <Input
+                                    label="الموقع الإلكتروني"
+                                    value={companyFormData.website}
+                                    onChange={e => setCompanyFormData({ ...companyFormData, website: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex justify-start">
+                                <Button type="submit" size="lg">حفظ التغييرات</Button>
+                            </div>
+                        </form>
+                    </div>
+                )}
 
                 {activeTab === 'project' && (
                     <>

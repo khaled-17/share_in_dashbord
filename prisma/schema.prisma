@@ -298,3 +298,17 @@ model Customer {
 
   @@map("customers")
 }
+
+model CompanySettings {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  about       String?  @db.Text
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  updated_at  DateTime @updatedAt
+
+  @@map("company_settings")
+}

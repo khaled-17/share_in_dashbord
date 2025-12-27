@@ -20,6 +20,7 @@ import partnerRoutes from './routes/partners.js';
 import receiptVoucherRoutes from './routes/receiptVouchers.js';
 import paymentVoucherRoutes from './routes/paymentVouchers.js';
 import checkRoutes from './routes/checks.js';
+import companyRoutes from './routes/company.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ app.use('/api/partners', partnerRoutes);
 app.use('/api/receipt-vouchers', receiptVoucherRoutes);
 app.use('/api/payment-vouchers', paymentVoucherRoutes);
 app.use('/api/checks', checkRoutes);
+app.use('/api/company', companyRoutes);
 
 // Global Error Handler (Must be last)
 app.use(errorHandler);

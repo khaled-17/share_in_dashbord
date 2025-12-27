@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { financeService } from '../../services/finance';
+import { companyService, type CompanySettings } from '../../services/company';
+import { receiptVoucherService, paymentVoucherService } from '../../services/vouchers';
+import { quotationService } from '../../services/quotations';
 
 interface Transaction {
   id: number;
@@ -17,15 +20,23 @@ interface Stats {
   totalExpenses: number;
   balance: number;
   quotationsCount: number;
+  quotationsStatus: {
+    accepted: number;
+    sent: number;
+    draft: number;
+    rejected: number;
+  };
 }
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [company, setCompany] = useState<CompanySettings | null>(null);
   const [stats, setStats] = useState<Stats>({
     totalRevenue: 0,
     totalExpenses: 0,
     balance: 0,
     quotationsCount: 0,
+    quotationsStatus: { accepted: 0, sent: 0, draft: 0, rejected: 0 }
   });
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,50 +46,86 @@ export const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
 
-      const [allRevenue, allExpenses] = await Promise.all([
+      const [
+        allRevenue,
+        allExpenses,
+        receiptVouchers,
+        paymentVouchers,
+        quotations,
+        companyData
+      ] = await Promise.all([
         financeService.getAllRevenue(),
-        financeService.getAllExpenses()
+        financeService.getAllExpenses(),
+        receiptVoucherService.getAll(),
+        paymentVoucherService.getAll(),
+        quotationService.getAll(),
+        companyService.getSettings()
       ]);
+
+      setCompany(companyData);
 
       const revenueData = allRevenue || [];
       const expensesData = allExpenses || [];
+      const receiptsData = receiptVouchers || [];
+      const paymentsData = paymentVouchers || [];
+      const quotesData = quotations || [];
 
-      // Calculate totals
-      const totalRevenue = revenueData.reduce((sum, item) => sum + (item.amount || 0), 0);
-      const totalExpenses = expensesData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      // Calculate totals (Base Finance + Vouchers)
+      const totalRev = revenueData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const totalReceipts = receiptsData.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+      const totalExp = expensesData.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const totalPayments = paymentsData.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+      const totalRevenue = totalRev + totalReceipts;
+      const totalExpenses = totalExp + totalPayments;
       const balance = totalRevenue - totalExpenses;
 
-      // Fetch quotations count (Mocked/Pending Backend)
-      // TODO: Implement quotationService when backend route is ready
-      const quotationsCount = 0;
+      const quotationsCount = quotesData.length;
+      const quotationsStatus = {
+        accepted: quotesData.filter(q => q.status === 'مقبول').length,
+        sent: quotesData.filter(q => q.status === 'مرسل').length,
+        draft: quotesData.filter(q => q.status === 'مسودة').length,
+        rejected: quotesData.filter(q => q.status === 'مرفوض').length,
+      };
 
       setStats({
         totalRevenue,
         totalExpenses,
         balance,
         quotationsCount,
+        quotationsStatus
       });
 
-      // Recent Transactions
-      // Sort by date desc
-      const sortedRevenue = [...revenueData].sort((a, b) => new Date(b.rev_date).getTime() - new Date(a.rev_date).getTime()).slice(0, 3);
-      const sortedExpenses = [...expensesData].sort((a, b) => new Date(b.exp_date).getTime() - new Date(a.exp_date).getTime()).slice(0, 3);
-
-      // Combine and format transactions
+      // Recent Transactions (Combine all sources)
       const transactions: Transaction[] = [
-        ...sortedRevenue.map(item => ({
+        ...revenueData.map(item => ({
           id: item.id,
           type: 'قبض' as const,
-          description: item.notes || `دفعة من ${(item.customer as any)?.name || 'عميل'}`,
+          description: item.notes || `إيراد: ${(item.type as any)?.revtype_name || 'عام'} - ${(item.customer as any)?.name || 'عميل'}`,
           amount: item.amount,
           date: item.rev_date,
         })),
-        ...sortedExpenses.map(item => ({
+        ...receiptsData.map(item => ({
+          id: item.id * 1000, // Namespace separation
+          type: 'قبض' as const,
+          description: item.description || `سند قبض من ${item.received_from}`,
+          amount: item.amount,
+          date: item.voucher_date,
+        })),
+        ...expensesData.map(item => ({
           id: item.id,
           type: 'صرف' as const,
-          description: item.notes || `دفعة إلى ${(item.supplier as any)?.name || 'مورد'}`,
+          description: item.notes || `مصروف: ${(item.type as any)?.exptype_name || 'عام'} - ${(item.supplier as any)?.name || 'مورد'}`,
           amount: -item.amount,
           date: item.exp_date,
+        })),
+        ...paymentsData.map(item => ({
+          id: item.id * 2000, // Namespace separation
+          type: 'صرف' as const,
+          description: item.description || `سند صرف إلى ${item.paid_to}`,
+          amount: -item.amount,
+          date: item.voucher_date,
         })),
       ];
 
@@ -138,7 +185,7 @@ export const Dashboard: React.FC = () => {
     {
       title: 'عروض الأسعار',
       value: `${stats.quotationsCount} عرض`,
-      change: '',
+      change: `مقبول: ${stats.quotationsStatus.accepted} | مرسل: ${stats.quotationsStatus.sent}`,
       changeType: 'neutral',
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,6 +220,47 @@ export const Dashboard: React.FC = () => {
       />
 
       <div className="space-y-6">
+        {/* Company Profile Header */}
+        {!isLoading && company && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-center">
+            <div className="w-24 h-24 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600 shrink-0">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div className="text-center md:text-right flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{company.name}</h1>
+              <p className="text-lg text-gray-600 max-w-3xl leading-relaxed">
+                {company.description}
+              </p>
+              <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100 italic text-gray-700">
+                <p>
+                  الموقف المالي الحالي: تمتلك الشركة رصيداً إجمالياً قدره <span className="font-bold text-primary-600">{stats.balance.toLocaleString('ar-EG')} ج.م</span> الإيرادات الكلية بلغت <span className="font-bold text-green-600">{stats.totalRevenue.toLocaleString('ar-EG')} ج.م</span> مقابل مصروفات إجمالية <span className="font-bold text-red-600">{stats.totalExpenses.toLocaleString('ar-EG')} ج.م</span>.
+                </p>
+              </div>
+              {company.about && (
+                <p className="text-sm text-gray-500 mt-3 border-r-4 border-primary-500 pr-4 italic">
+                  {company.about}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 min-w-[200px]">
+              <div className="flex items-center gap-2 text-sm text-gray-600 justify-end">
+                <span>{company.phone}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 justify-end">
+                <span>{company.email}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 justify-end">
+                <span>{company.address}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         {isLoading ? (
           <div className="text-center py-8">جاري التحميل...</div>

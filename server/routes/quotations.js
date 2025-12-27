@@ -96,45 +96,38 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const {
-            customer_id,
-            project_type_id,
-            project_manager,
-            project_name,
-            quote_date,
-            delivery_date,
-            totalamount,
-            paid_adv,
-            adv_date,
-            receipt_no,
-            status,
-            items
-        } = req.body;
+        const data = req.body;
         const idInt = parseInt(id);
 
-        // Delete existing items first for a simple replace approach
-        await prisma.quotationItem.deleteMany({
-            where: { quotation_id: idInt }
-        });
+        const updateData = {};
+
+        // Only include fields that are present in req.body
+        if (data.customer_id !== undefined) updateData.customer_id = data.customer_id;
+        if (data.project_type_id !== undefined) updateData.project_type_id = data.project_type_id;
+        if (data.project_manager !== undefined) updateData.project_manager = data.project_manager;
+        if (data.project_name !== undefined) updateData.project_name = data.project_name;
+        if (data.quote_date !== undefined) updateData.quote_date = data.quote_date;
+        if (data.delivery_date !== undefined) updateData.delivery_date = data.delivery_date;
+        if (data.totalamount !== undefined) updateData.totalamount = parseFloat(data.totalamount);
+        if (data.paid_adv !== undefined) updateData.paid_adv = data.paid_adv ? parseFloat(data.paid_adv) : null;
+        if (data.adv_date !== undefined) updateData.adv_date = data.adv_date;
+        if (data.receipt_no !== undefined) updateData.receipt_no = data.receipt_no;
+        if (data.status !== undefined) updateData.status = data.status;
+
+        // Handle items if provided
+        if (data.items) {
+            // Delete existing items first
+            await prisma.quotationItem.deleteMany({
+                where: { quotation_id: idInt }
+            });
+            updateData.items = {
+                create: data.items
+            };
+        }
 
         const updatedQuotation = await prisma.quotation.update({
             where: { id: idInt },
-            data: {
-                customer_id,
-                project_type_id,
-                project_manager,
-                project_name,
-                quote_date,
-                delivery_date,
-                totalamount: parseFloat(totalamount),
-                paid_adv: paid_adv ? parseFloat(paid_adv) : null,
-                adv_date,
-                receipt_no,
-                status,
-                items: {
-                    create: items || []
-                }
-            },
+            data: updateData,
             include: {
                 customer: true,
                 items: true,

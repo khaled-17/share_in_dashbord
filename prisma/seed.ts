@@ -256,6 +256,116 @@ async function seed() {
             })
         ]);
 
+        // 8. إنشاء عروض أسعار تجريبية
+        console.log('📝 Creating quotations...');
+        const quotationsData = await Promise.all([
+            prisma.quotation.upsert({
+                where: { id: 1 },
+                update: {},
+                create: {
+                    id: 1,
+                    customer_id: 'C00001',
+                    project_name: 'مؤتمر التكنولوجيا السنوي',
+                    project_type_id: 'PT001',
+                    quote_date: '2025-12-01',
+                    totalamount: 45000,
+                    status: 'نشط',
+                    items: {
+                        create: [
+                            { description: 'تأجير معدات إضاءة', unit_price: 15000, quantity: 1, total: 15000 },
+                            { description: 'نظام صوت مطور', unit_price: 20000, quantity: 1, total: 20000 },
+                            { description: 'خدمات لوجستية', unit_price: 10000, quantity: 1, total: 10000 }
+                        ]
+                    }
+                }
+            })
+        ]);
+
+        // 9. إنشاء إيرادات ومصروفات تجريبية
+        console.log('💸 Creating revenue and expenses...');
+        await prisma.revenue.createMany({
+            data: [
+                {
+                    rev_date: '2025-12-05',
+                    amount: 25000,
+                    customer_id: 'C00001',
+                    revtype_id: 'REV001',
+                    notes: 'دفعة أولى - مؤتمر التكنولوجيا'
+                },
+                {
+                    rev_date: '2025-12-15',
+                    amount: 10000,
+                    customer_id: 'C00002',
+                    revtype_id: 'REV001',
+                    notes: 'دفعة مقدمة - حفل سنوي'
+                }
+            ]
+        });
+
+        await prisma.expense.createMany({
+            data: [
+                {
+                    exp_date: '2025-12-10',
+                    amount: 5000,
+                    supplier_id: 'S001',
+                    exptype_id: 'EXP003',
+                    notes: 'شراء كابلات ومستلزمات إضاءة'
+                },
+                {
+                    exp_date: '2025-12-20',
+                    amount: 3000,
+                    supplier_id: 'S002',
+                    exptype_id: 'EXP003',
+                    notes: 'تكاليف شحن ومواصلات'
+                }
+            ]
+        });
+
+        // 10. إنشاء سندات قبض وصرف تجريبية
+        console.log('🎫 Creating vouchers...');
+        await prisma.receiptVoucher.create({
+            data: {
+                voucher_number: 'RV-2025-001',
+                voucher_date: '2025-12-22',
+                amount: 8000,
+                source_type: 'customer',
+                customer_id: 'C00001',
+                payment_method: 'cash',
+                received_from: 'أحمد محمد',
+                description: 'تحصيل متبقي مؤتمر التكنولوجيا'
+            }
+        });
+
+        await prisma.paymentVoucher.create({
+            data: {
+                voucher_number: 'PV-2025-001',
+                voucher_date: '2025-12-23',
+                amount: 2500,
+                beneficiary_type: 'supplier',
+                supplier_id: 'S003',
+                payment_method: 'cash',
+                paid_to: 'صوت وصورة بلس',
+                description: 'دفعة صيانة شاشات'
+            }
+        });
+
+        // 8. إنشاء إعدادات الشركة
+        console.log('🏢 Creating company settings...');
+        await prisma.companySettings.upsert({
+            where: { id: 1 },
+            update: {},
+            create: {
+                id: 1,
+                name: 'شركة سهم (Share In)',
+                description: 'شركة رائدة في مجال إدارة الفعاليات والمؤتمرات، نسعى لتقديم أفضل الحلول المتكاملة لعملائنا.',
+                about: 'تأسست شركة سهم لتكون شريككم النجاح في تنظيم فعالياتكم بأعلى معايير الجودة والاحترافية. نحن فخورون بفريقنا المتميز وخبراتنا الواسعة في السوق المصري.',
+                address: 'القاهرة، المعادي - شارع 9',
+                phone: '0123456789',
+                email: 'info@share-in.com',
+                website: 'www.share-in.com'
+            }
+        });
+
         console.log('✅ Database seeding completed successfully!');
         console.log(`
 📊 Summary:
