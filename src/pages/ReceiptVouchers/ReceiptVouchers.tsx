@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Modal, Input, Drawer } from '../../components/ui';
+import { Card, Button, Table, Input, Drawer } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { receiptVoucherService, type ReceiptVoucher } from '../../services/vouchers';
 import { customerService } from '../../services/customers';
