@@ -17,6 +17,7 @@ import { Settings } from './pages/Settings';
 import { WorkOrders } from './pages/WorkOrders';
 import { Partners } from './pages/Partners';
 import { ReceiptVouchers } from './pages/ReceiptVouchers';
+import { PaymentVouchers } from './pages/PaymentVouchers';
 
 const RouteHandler = () => {
   const location = useLocation();
@@ -86,6 +87,10 @@ const RouteHandler = () => {
         title: 'سندات القبض',
         subtitle: 'تسجيل ومتابعة جميع المقبوضات المالية'
       },
+      '/payment-vouchers': {
+        title: 'سندات الصرف',
+        subtitle: 'تسجيل ومتابعة جميع المدفوعات المالية'
+      },
     };
 
     return routes[pathname] || { title: 'لوحة التحكم', subtitle: '' };
@@ -121,6 +126,7 @@ const RouteHandler = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/receipt-vouchers" element={<ReceiptVouchers />} />
+        <Route path="/payment-vouchers" element={<PaymentVouchers />} />
       </Routes>
     </MainLayout>
   );
