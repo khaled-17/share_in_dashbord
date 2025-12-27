@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { financeService } from '../../services/finance';
+import { receiptVoucherService, paymentVoucherService } from '../../services/vouchers';
 
 interface LedgerItem {
   date: string;
@@ -12,8 +13,8 @@ interface LedgerItem {
 }
 
 export const Reports: React.FC = () => {
-  const [dateFrom, setDateFrom] = useState('2025-11-01');
-  const [dateTo, setDateTo] = useState('2025-11-30');
+  const [dateFrom, setDateFrom] = useState('2025-12-01');
+  const [dateTo, setDateTo] = useState('2025-12-31');
   const [reportType, setReportType] = useState('receipts'); // Default to 'receipts' as per user request example, or 'all'
   const [ledgerData, setLedgerData] = useState<LedgerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,61 +27,95 @@ export const Reports: React.FC = () => {
       let transactions: LedgerItem[] = [];
 
       // Fetch all data
-      const [allRevenue, allExpenses] = await Promise.all([
+      const [allRevenue, allExpenses, allReceiptVouchers, allPaymentVouchers] = await Promise.all([
         financeService.getAllRevenue(),
-        financeService.getAllExpenses()
+        financeService.getAllExpenses(),
+        receiptVoucherService.getAll(),
+        paymentVoucherService.getAll()
       ]);
 
       const revenues = allRevenue || [];
       const expenses = allExpenses || [];
+      const receiptVouchers = allReceiptVouchers || [];
+      const paymentVouchers = allPaymentVouchers || [];
 
       // 1. Calculate Opening Balance (Sum of all transactions before dateFrom)
-      // Filter previous revenue
+      // Filter previous revenue + receipts
       const prevRevenueTotal = revenues
         .filter((item: any) => item.rev_date < dateFrom)
         .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
-      // Filter previous expenses
+      const prevReceiptsTotal = receiptVouchers
+        .filter((item: any) => item.voucher_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+
+      // Filter previous expenses + payments
       const prevExpensesTotal = expenses
         .filter((item: any) => item.exp_date < dateFrom)
         .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
-      openingBalance = prevRevenueTotal - prevExpensesTotal;
+      const prevPaymentsTotal = paymentVouchers
+        .filter((item: any) => item.voucher_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+
+      openingBalance = (prevRevenueTotal + prevReceiptsTotal) - (prevExpensesTotal + prevPaymentsTotal);
 
       // 2. Fetch Current Period Data
       let currentRevenue: any[] = [];
       let currentExpenses: any[] = [];
+      let currentReceipts: any[] = [];
+      let currentPayments: any[] = [];
 
       if (reportType === 'all' || reportType === 'receipts') {
         currentRevenue = revenues
-          .filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo)
-          .sort((a: any, b: any) => new Date(a.rev_date).getTime() - new Date(b.rev_date).getTime());
+          .filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo);
+
+        currentReceipts = receiptVouchers
+          .filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
       }
 
       if (reportType === 'all' || reportType === 'payments') {
         currentExpenses = expenses
-          .filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo)
-          .sort((a: any, b: any) => new Date(a.exp_date).getTime() - new Date(b.exp_date).getTime());
+          .filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo);
+
+        currentPayments = paymentVouchers
+          .filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
       }
 
       // 3. Transform and Merge Data
       const revenueItems: LedgerItem[] = currentRevenue.map((item: any) => ({
         date: item.rev_date,
-        description: `قبض من ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
+        description: `إيراد: ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
         debit: Number(item.amount),
         credit: 0,
-        balance: 0 // Calculated later
+        balance: 0
+      }));
+
+      const receiptItems: LedgerItem[] = currentReceipts.map((item: any) => ({
+        date: item.voucher_date,
+        description: `سند قبض ${item.voucher_number}: ${item.received_from} - ${item.description || ''}`,
+        debit: Number(item.amount),
+        credit: 0,
+        balance: 0
       }));
 
       const expenseItems: LedgerItem[] = currentExpenses.map((item: any) => ({
         date: item.exp_date,
-        description: `صرف لـ ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
+        description: `مصروف: ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
         debit: 0,
         credit: Number(item.amount),
-        balance: 0 // Calculated later
+        balance: 0
       }));
 
-      transactions = [...revenueItems, ...expenseItems].sort((a, b) =>
+      const paymentItems: LedgerItem[] = currentPayments.map((item: any) => ({
+        date: item.voucher_date,
+        description: `سند صرف ${item.voucher_number}: ${item.paid_to} - ${item.description || ''}`,
+        debit: 0,
+        credit: Number(item.amount),
+        balance: 0
+      }));
+
+      transactions = [...revenueItems, ...receiptItems, ...expenseItems, ...paymentItems].sort((a, b) =>
         new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
