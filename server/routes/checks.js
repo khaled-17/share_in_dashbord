@@ -74,7 +74,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Update check status
-router.patch('/:id/status', asyncHandler(async (req, res) => {
+router.put('/:id/status', asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { status, notes } = req.body;
 
