@@ -30,6 +30,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           {children}
         </main>
       </div>
+      
     </div>
   );
 };

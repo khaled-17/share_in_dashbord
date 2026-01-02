@@ -142,6 +142,7 @@ function App() {
   return (
     <HashRouter>
       <RouteHandler />
+    
     </HashRouter>
   );
 }

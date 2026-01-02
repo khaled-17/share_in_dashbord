@@ -68,6 +68,9 @@ export const Settings: React.FC = () => {
         ]);
     };
 
+console.log(companyInfo,companyLoading);
+
+    
     const fetchCompanyInfo = async () => {
         try {
             setCompanyLoading(true);

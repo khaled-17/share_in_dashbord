@@ -226,6 +226,9 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               <p className="text-xs text-primary-200">مدير النظام</p>
             </div>
           </div>
+          <div className="mt-4 text-center">
+            <p className="text-[10px] text-primary-400 font-mono opacity-50">v{__APP_VERSION__}</p>
+          </div>
         </div>
       )}
     </aside>
