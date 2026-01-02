@@ -2,7 +2,7 @@
   "name": "share-in-app",
   "homepage": "https://khaled-17.github.io/share_in_dashbord",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev:frontend": "vite",
