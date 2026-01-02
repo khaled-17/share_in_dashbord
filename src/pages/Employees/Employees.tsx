@@ -20,12 +20,12 @@ export const Employees: React.FC = () => {
 
   // Generate next employee code
   const generateNextCode = () => {
-    if (employees.length === 0) return 'E001';
+    if (!Array.isArray(employees) || employees.length === 0) return 'E001';
 
     // Filter employees with valid format (E + numbers)
     const validCodes = employees
       .map(e => e.emp_code)
-      .filter(code => /^E\d+$/.test(code))
+      .filter(code => typeof code === 'string' && /^E\d+$/.test(code))
       .map(code => parseInt(code.substring(1)))
       .filter(num => !isNaN(num));
 
@@ -43,9 +43,10 @@ export const Employees: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await employeeService.getAll();
-      setEmployees(data || []);
+      setEmployees(Array.isArray(data) ? data : []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
+      setEmployees([]);
       console.error(err);
     } finally {
       setIsLoading(false);

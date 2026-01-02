@@ -27,28 +27,23 @@ export const Suppliers: React.FC = () => {
 
   // Filtered suppliers based on search
   const filteredSuppliers = useMemo(() => {
-    if (!searchTerm.trim()) {
-      console.log('📋 All suppliers:', suppliers.length);
-      return suppliers;
-    }
+    if (!searchTerm.trim()) return suppliers;
     const term = searchTerm.toLowerCase();
-    const filtered = suppliers.filter(s =>
-      s.name.toLowerCase().includes(term) ||
-      s.supplier_id.toLowerCase().includes(term) ||
-      (s.phone && s.phone.includes(term)) ||
-      (s.contact_person && s.contact_person.toLowerCase().includes(term)) ||
-      (s.speciality && s.speciality.toLowerCase().includes(term))
+    return suppliers.filter(s =>
+      (s.name?.toLowerCase().includes(term)) ||
+      (s.supplier_id?.toLowerCase().includes(term)) ||
+      (s.phone && String(s.phone).includes(term)) ||
+      (s.contact_person?.toLowerCase().includes(term)) ||
+      (s.speciality?.toLowerCase().includes(term))
     );
-    console.log('🔍 Filtered suppliers:', filtered.length);
-    return filtered;
   }, [suppliers, searchTerm]);
 
   // Generate next supplier ID
   const generateNextId = () => {
-    if (suppliers.length === 0) return 'S001';
+    if (!Array.isArray(suppliers) || suppliers.length === 0) return 'S001';
     const validIds = suppliers
       .map(s => s.supplier_id)
-      .filter(id => /^S\d+$/.test(id))
+      .filter(id => typeof id === 'string' && /^S\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
     if (validIds.length === 0) return 'S001';
@@ -59,13 +54,11 @@ export const Suppliers: React.FC = () => {
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true);
-      console.log('🔄 Fetching suppliers...');
       const data = await supplierService.getAll();
-      console.log('✅ Suppliers received:', data);
-      setSuppliers(data || []);
+      setSuppliers(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error('❌ Error fetching suppliers:', err);
       toast.error('فشل في تحميل البيانات: ' + err.message);
+      setSuppliers([]);
     } finally {
       setIsLoading(false);
     }
@@ -229,15 +222,12 @@ export const Suppliers: React.FC = () => {
             <p className="text-gray-500">جاري تحميل الموردين...</p>
           </div>
         ) : (
-          <>
-            {console.log('🎨 Rendering table with suppliers:', filteredSuppliers.length, 'Loading:', isLoading)}
-            <Table
-              columns={columns}
-              data={filteredSuppliers}
-              emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد موردين مضافين بعد'}
-              onRowClick={(s) => navigate(`/suppliers/${s.supplier_id}`)}
-            />
-          </>
+          <Table
+            columns={columns}
+            data={filteredSuppliers}
+            emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد موردين مضافين بعد'}
+            onRowClick={(s) => navigate(`/suppliers/${s.supplier_id}`)}
+          />
         )}
       </Card>
 

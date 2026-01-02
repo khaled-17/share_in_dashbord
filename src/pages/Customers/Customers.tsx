@@ -30,19 +30,19 @@ export const Customers: React.FC = () => {
     if (!searchTerm.trim()) return customers;
     const term = searchTerm.toLowerCase();
     return customers.filter(c =>
-      c.name.toLowerCase().includes(term) ||
-      c.customer_id.toLowerCase().includes(term) ||
-      (c.phone && c.phone.includes(term)) ||
-      (c.contact_person && c.contact_person.toLowerCase().includes(term))
+      (c.name?.toLowerCase().includes(term)) ||
+      (c.customer_id?.toLowerCase().includes(term)) ||
+      (c.phone && String(c.phone).includes(term)) ||
+      (c.contact_person?.toLowerCase().includes(term))
     );
   }, [customers, searchTerm]);
 
   // Generate next customer ID
   const generateNextId = () => {
-    if (customers.length === 0) return 'C00001';
+    if (!Array.isArray(customers) || customers.length === 0) return 'C00001';
     const validIds = customers
       .map(c => c.customer_id)
-      .filter(id => /^C\d+$/.test(id))
+      .filter(id => typeof id === 'string' && /^C\d+$/.test(id))
       .map(id => parseInt(id.substring(1)))
       .filter(num => !isNaN(num));
     if (validIds.length === 0) return 'C00001';
@@ -54,9 +54,10 @@ export const Customers: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await customerService.getAll();
-      setCustomers(data || []);
+      setCustomers(Array.isArray(data) ? data : []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
+      setCustomers([]);
     } finally {
       setIsLoading(false);
     }
