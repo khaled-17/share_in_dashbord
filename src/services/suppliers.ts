@@ -1,4 +1,6 @@
 import { api } from './api';
+import { supabase } from '../lib/supabase';
+import { APP_CONFIG } from '../config';
 
 export interface Supplier {
     id: number;
@@ -15,12 +17,71 @@ export interface Supplier {
 }
 
 export const supplierService = {
-    getAll: () => api.get<Supplier[]>('/suppliers'),
-    getById: (id: string) => api.get<Supplier>(`/suppliers/${id}`),
+    getAll: async () => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data, error } = await supabase
+                .from('suppliers')
+                .select('*')
+                .order('name', { ascending: true });
+            if (error) throw error;
+            return data as Supplier[];
+        }
+        return api.get<Supplier[]>('/suppliers');
+    },
 
-    create: (data: Omit<Supplier, 'id'>) => api.post<Supplier>('/suppliers', data),
+    getById: async (id: string) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data, error } = await supabase
+                .from('suppliers')
+                .select(`
+                    *,
+                    expenses(*, type:expense_types(*)),
+                    payment_vouchers(*)
+                `)
+                .eq('supplier_id', id)
+                .single();
+            if (error) throw error;
+            return data as Supplier;
+        }
+        return api.get<Supplier>(`/suppliers/${id}`);
+    },
 
-    update: (id: number, data: Partial<Supplier>) => api.put<Supplier>(`/suppliers/${id}`, data),
+    create: async (data: Omit<Supplier, 'id' | 'created_at'>) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data: result, error } = await supabase
+                .from('suppliers')
+                .insert([data])
+                .select()
+                .single();
+            if (error) throw error;
+            return result as Supplier;
+        }
+        return api.post<Supplier>('/suppliers', data);
+    },
 
-    delete: (id: number) => api.delete<{ message: string }>(`/suppliers/${id}`),
+    update: async (id: number, data: Partial<Supplier>) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data: result, error } = await supabase
+                .from('suppliers')
+                .update(data)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return result as Supplier;
+        }
+        return api.put<Supplier>(`/suppliers/${id}`, data);
+    },
+
+    delete: async (id: number) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { error } = await supabase
+                .from('suppliers')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+            return { message: 'Supplier deleted successfully' };
+        }
+        return api.delete<{ message: string }>(`/suppliers/${id}`);
+    },
 };

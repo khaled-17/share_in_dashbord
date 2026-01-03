@@ -1,4 +1,6 @@
 import { api } from './api';
+import { supabase } from '../lib/supabase';
+import { APP_CONFIG } from '../config';
 
 export interface Employee {
     id: number;
@@ -11,11 +13,51 @@ export interface Employee {
 }
 
 export const employeeService = {
-    getAll: () => api.get<Employee[]>('/employees'),
+    getAll: async () => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data, error } = await supabase
+                .from('employees')
+                .select('*')
+                .order('name', { ascending: true });
+            if (error) throw error;
+            return data as Employee[];
+        }
+        return api.get<Employee[]>('/employees');
+    },
 
-    create: (data: Omit<Employee, 'id'>) => api.post<Employee>('/employees', data),
+    create: async (data: Omit<Employee, 'id'>) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data: result, error } = await supabase
+                .from('employees')
+                .insert([data])
+                .select()
+                .single();
+            if (error) throw error;
+            return result as Employee;
+        }
+        return api.post<Employee>('/employees', data);
+    },
 
-    update: (id: number, data: Partial<Employee>) => api.put<Employee>(`/employees/${id}`, data),
+    update: async (id: number, data: Partial<Employee>) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data: result, error } = await supabase
+                .from('employees')
+                .update(data)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return result as Employee;
+        }
+        return api.put<Employee>(`/employees/${id}`, data);
+    },
 
-    delete: (id: number) => api.delete<{ message: string }>(`/employees/${id}`),
+    delete: async (id: number) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { error } = await supabase.from('employees').delete().eq('id', id);
+            if (error) throw error;
+            return { message: 'Employee deleted successfully' };
+        }
+        return api.delete<{ message: string }>(`/employees/${id}`);
+    },
 };

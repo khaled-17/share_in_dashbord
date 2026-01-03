@@ -1,4 +1,6 @@
 import { api } from './api';
+import { supabase } from '../lib/supabase';
+import { APP_CONFIG } from '../config';
 
 export interface CustomerReview {
     id: string;
@@ -12,7 +14,28 @@ export interface CustomerReview {
 }
 
 export const reviewsService = {
-    getAll: () => api.get<CustomerReview[]>('/reviews'),
+    getAll: async () => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data, error } = await supabase
+                .from('CustomerReview')
+                .select('*')
+                .order('createdAt', { ascending: false });
+            if (error) throw error;
+            return data as CustomerReview[];
+        }
+        return api.get<CustomerReview[]>('/reviews');
+    },
 
-    create: (data: Omit<CustomerReview, 'id' | 'createdAt'>) => api.post<CustomerReview>('/reviews', data),
+    create: async (data: Omit<CustomerReview, 'id' | 'createdAt'>) => {
+        if (APP_CONFIG.currentSource === 'supabase') {
+            const { data: result, error } = await supabase
+                .from('CustomerReview')
+                .insert([data])
+                .select()
+                .single();
+            if (error) throw error;
+            return result as CustomerReview;
+        }
+        return api.post<CustomerReview>('/reviews', data);
+    },
 };
