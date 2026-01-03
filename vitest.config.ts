@@ -8,6 +8,18 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./src/test/setup.ts'],
+        poolOptions: {
+            threads: {
+                singleThread: true,
+            },
+        },
+        deps: {
+            optimizer: {
+                web: {
+                    include: ['msw'],
+                },
+            },
+        },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],

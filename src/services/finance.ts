@@ -77,7 +77,7 @@ export const financeService = {
             if (error) throw error;
             return { message: 'Revenue deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/revenue/${id}`),
+        return api.delete<{ message: string }>(`/revenue/${id}`);
     },
 
     // Expenses
