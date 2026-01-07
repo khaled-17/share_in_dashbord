@@ -227,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             </div>
           </div>
           <div className="mt-4 text-center">
-            <p className="text-[10px] text-primary-400 font-mono opacity-50">v{__APP_VERSION__}</p>
+            <p className="text-[10px] text-primary-400 font-mono opacity-50">v{__APP_VERSION__}ss</p>
           </div>
         </div>
       )}
