@@ -10,12 +10,13 @@ export const APP_CONFIG = {
      */
     DATA_SOURCE: 'api' as 'api' | 'supabase',
 
-    // You can manually toggle this here or make it dynamic based on hostname
+    // Automatically detect environment and use appropriate data source
     get currentSource() {
+        // Only use DATA_SOURCE setting for localhost development
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return this.DATA_SOURCE; // Use what's set above
         }
-        // Force supabase on GitHub Pages
+        // Force supabase for all deployed environments (Vercel, GitHub Pages, etc.)
         return 'supabase';
     }
 };
