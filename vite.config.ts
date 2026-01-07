@@ -7,7 +7,8 @@ export default defineConfig(({ command }) => ({
   plugins: [react()],
 
   // 👇 سيبها زي ما هي
-  base: command === 'serve' ? '/' : '/share_in_dashbord/',
+  // 👇 Use '/' by default (for Vercel and local) and '/share_in_dashbord/' for GitHub Pages
+  base: (command === 'serve' || process.env.VERCEL) ? '/' : '/share_in_dashbord/',
 
   // 👇 الإضافة الجديدة
   define: {
