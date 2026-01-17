@@ -386,13 +386,6 @@ export const Expenses: React.FC = () => {
                   required
                 />
                 <Input
-                  label="رقم عرض السعر"
-                  value={formData.quote_id}
-                  onChange={(e) => setFormData({ ...formData, quote_id: e.target.value })}
-                  placeholder="اختياري"
-                  type="number"
-                />
-                <Input
                   label="رقم الإيصال"
                   value={formData.receipt_no}
                   onChange={(e) => setFormData({ ...formData, receipt_no: e.target.value })}

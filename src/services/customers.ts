@@ -36,9 +36,10 @@ export const customerService = {
                 .from('customers')
                 .select(`
                     *,
-                    revenues(*, type:revenue_types(*)),
+                    *,
+                    revenues:revenue(*, type:revenue_types(*)),
                     quotations(*),
-                    work_orders(*)
+                    work_orders:WorkOrder(*)
                 `)
                 .eq('customer_id', id)
                 .single();

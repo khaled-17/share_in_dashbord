@@ -22,6 +22,10 @@ export const CustomerDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('finance');
 
+  // Date Filter State
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   // Edit State
   const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -134,13 +138,6 @@ export const CustomerDetails: React.FC = () => {
     { key: 'status', header: 'الحالة' },
   ];
 
-  if (isLoading) return <div className="text-center py-20">جاري التحميل...</div>;
-  if (!customer) return <div className="text-center py-20 text-red-500">لم يتم العثور على العميل</div>;
-
-  // Date Filter State
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-
   // Filtered Data
   const getFilteredData = (data: any[], dateKey: string) => {
     if (!dateFrom && !dateTo) return data;
@@ -151,6 +148,9 @@ export const CustomerDetails: React.FC = () => {
       return true;
     });
   };
+
+  if (isLoading) return <div className="text-center py-20">جاري التحميل...</div>;
+  if (!customer) return <div className="text-center py-20 text-red-500">لم يتم العثور على العميل</div>;
 
   const filteredRevenues = getFilteredData(revenues, 'rev_date');
   const filteredQuotations = getFilteredData(quotations, 'quote_date');

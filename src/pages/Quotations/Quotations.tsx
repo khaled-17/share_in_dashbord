@@ -303,6 +303,12 @@ export const Quotations: React.FC = () => {
         {showForm && (
           <form onSubmit={handleSubmit} className="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <Input
+                label="رقم عرض السعر"
+                value={isEditing && currentId ? `QUO-${String(currentId).padStart(4, '0')}` : 'سيتم التوليد تلقائياً'}
+                disabled
+                className="bg-gray-100 font-bold text-gray-500"
+              />
               <Select
                 label="العميل *"
                 value={formData.customer_id}
