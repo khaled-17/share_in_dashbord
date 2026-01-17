@@ -172,9 +172,34 @@ export const CustomerDetails: React.FC = () => {
         @media print {
           .no-print { display: none !important; }
           .printable-content { width: 100%; max-width: none; margin: 0; padding: 0; }
-          .card { box-shadow: none; border: 1px solid #ddd; }
+          .card { box-shadow: none; border: none !important; }
+          .print-only { display: block !important; }
+          
+          /* Reset Grid for Print to be linear */
+          .print-grid-reset { display: block !important; }
+          .print-full-width { width: 100% !important; margin-bottom: 20px; }
+          
+          /* Hide Scrollbars and ensure table fits */
+          .overflow-x-auto { overflow: visible !important; }
+          
+          body { font-size: 12pt; }
+          h1 { font-size: 18pt; margin-bottom: 10px; }
         }
+        .print-only { display: none; }
       `}</style>
+      <Toaster position="top-center" />
+
+      {/* Print Header */}
+      <div className="print-only text-center mb-8 border-b-2 border-gray-800 pb-4">
+        <h1 className="text-3xl font-bold mb-2">كشف حساب عميل</h1>
+        <h2 className="text-xl text-gray-600">{customer.name}</h2>
+        <div className="flex justify-between mt-4 text-sm text-gray-500">
+          <span>تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</span>
+          <span>
+            {dateFrom && dateTo ? `من: ${formatDate(dateFrom)} إلى: ${formatDate(dateTo)}` : 'بيان شامل'}
+          </span>
+        </div>
+      </div>
       <Toaster position="top-center" />
 
       <div className="flex items-center justify-between no-print">
@@ -192,11 +217,11 @@ export const CustomerDetails: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print-grid-reset">
         {/* Contact Info Card */}
-        <Card title="بيانات التواصل" className="lg:col-span-1">
+        <Card title="بيانات التواصل" className="lg:col-span-1 print-full-width">
           {/* ... existing info ... */}
-          <div className="space-y-4">
+          <div className="space-y-4 grid grid-cols-2 lg:grid-cols-1 print:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-500">كود العميل</p>
               <p className="font-bold">{customer.customer_id}</p>
@@ -233,7 +258,7 @@ export const CustomerDetails: React.FC = () => {
         </Card>
 
         {/* Content Tabs Card */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 print-full-width print-grid-reset">
           <div className="md:col-span-3 no-print">
             <Card>
               <div className="flex items-center gap-4">
@@ -263,7 +288,7 @@ export const CustomerDetails: React.FC = () => {
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
             <div className="bg-green-50 p-4 rounded-xl border border-green-100">
               <p className="text-sm text-green-600">إجمالي المدفوعات {dateFrom || dateTo ? '(مفلتر)' : ''}</p>
               <p className="text-2xl font-bold text-green-800">{formatAmount(totalRevenue)}</p>
@@ -279,7 +304,7 @@ export const CustomerDetails: React.FC = () => {
           </div>
 
           <Card>
-            <div className="flex gap-4 border-b mb-6 overflow-x-auto">
+            <div className="flex gap-4 border-b mb-6 overflow-x-auto no-print">
               <button
                 onClick={() => setActiveTab('finance')}
                 className={`pb-3 px-2 font-bold transition-all ${activeTab === 'finance' ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
