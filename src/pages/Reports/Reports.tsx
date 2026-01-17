@@ -146,6 +146,26 @@ export const Reports: React.FC = () => {
         balance: runningBalance
       });
 
+      // Calculate Budget Stats
+      const totalSales = currentRevenue.reduce((sum, item) => sum + Number(item.amount), 0);
+      const totalExpenses = currentExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+
+      const capitalIncrease = currentReceipts
+        .filter((item: any) => item.source_type === 'partner_capital' || item.partner_id)
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+
+      const withdrawals = currentPayments
+        .filter((item: any) => item.beneficiary_type === 'partner_withdrawal' || item.partner_id)
+        .reduce((sum, item) => sum + Number(item.amount), 0);
+
+      setBudgetStats({
+        sales: totalSales,
+        expenses: totalExpenses,
+        capitalWithdrawn: withdrawals,
+        capitalAdded: capitalIncrease,
+        netProfit: totalSales - totalExpenses
+      });
+
     } catch (err: any) {
       toast.error('فشل في تحميل التقرير: ' + err.message);
       console.error(err);
@@ -153,6 +173,14 @@ export const Reports: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  const [budgetStats, setBudgetStats] = useState({
+    sales: 0,
+    expenses: 0,
+    capitalWithdrawn: 0,
+    capitalAdded: 0,
+    netProfit: 0
+  });
 
   // Initial fetch
   useEffect(() => {
@@ -162,6 +190,34 @@ export const Reports: React.FC = () => {
   return (
     <div className="space-y-6">
       <Toaster position="top-center" />
+
+      {/* General Budget / Profit & Loss */}
+      <Card title="الميزانية العامة والربحية">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
+          <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+            <p className="text-gray-500 text-sm mb-1">إجمالي المبيعات (العملاء)</p>
+            <p className="text-xl font-bold text-green-700">{budgetStats.sales.toLocaleString()} ج.م</p>
+          </div>
+          <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+            <p className="text-gray-500 text-sm mb-1">إجمالي المصروفات (الموردين)</p>
+            <p className="text-xl font-bold text-red-700">{budgetStats.expenses.toLocaleString()} ج.م</p>
+          </div>
+          <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+            <p className="text-gray-500 text-sm mb-1">زيادة رأس المال</p>
+            <p className="text-xl font-bold text-purple-700">{budgetStats.capitalAdded.toLocaleString()} ج.م</p>
+          </div>
+          <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
+            <p className="text-gray-500 text-sm mb-1">المسحوبات</p>
+            <p className="text-xl font-bold text-orange-700">{budgetStats.capitalWithdrawn.toLocaleString()} ج.م</p>
+          </div>
+          <div className={`p-4 rounded-lg border ${budgetStats.netProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-200'}`}>
+            <p className="text-gray-500 text-sm mb-1">صافي الربح / الخسارة</p>
+            <p className={`text-xl font-bold ${budgetStats.netProfit >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+              {budgetStats.netProfit.toLocaleString()} ج.م
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
