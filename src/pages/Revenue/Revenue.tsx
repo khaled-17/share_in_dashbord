@@ -207,6 +207,12 @@ export const Revenue: React.FC = () => {
   // Table columns
   const columns = [
     {
+      key: 'code',
+      label: 'الكود',
+      header: 'الكود',
+      render: (revenue: RevenueModel) => <span className="font-mono font-bold text-gray-600">{revenue.code || '-'}</span>
+    },
+    {
       key: 'rev_date',
       label: 'التاريخ',
       header: 'التاريخ',

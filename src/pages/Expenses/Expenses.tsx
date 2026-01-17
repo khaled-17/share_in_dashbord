@@ -207,6 +207,12 @@ export const Expenses: React.FC = () => {
   // Table columns
   const columns = [
     {
+      key: 'code',
+      label: 'الكود',
+      header: 'الكود',
+      render: (expense: Expense) => <span className="font-mono font-bold text-gray-600">{expense.code || '-'}</span>
+    },
+    {
       key: 'exp_date',
       label: 'التاريخ',
       header: 'التاريخ',

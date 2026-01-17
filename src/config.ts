@@ -8,7 +8,7 @@ export const APP_CONFIG = {
      * - Change to 'api'      => To use local Express server.
      * - Change to 'supabase' => To use direct Supabase (Serverless).
      */
-    DATA_SOURCE: 'api' as 'api' | 'supabase',
+    DATA_SOURCE: 'supabase' as 'api' | 'supabase',
 
     // Automatically detect environment and use appropriate data source
     get currentSource() {

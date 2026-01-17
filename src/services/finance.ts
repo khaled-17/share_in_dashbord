@@ -4,6 +4,7 @@ import { APP_CONFIG } from '../config';
 
 export interface Revenue {
     id: number;
+    code?: string; // Auto-generated
     rev_date: string;
     amount: number;
     receipt_no?: string | null;
@@ -18,6 +19,7 @@ export interface Revenue {
 
 export interface Expense {
     id: number;
+    code?: string; // Auto-generated
     exp_date: string;
     amount: number;
     receipt_no?: string | null;

@@ -297,13 +297,37 @@ export const Reports: React.FC = () => {
         subtitle={`من ${dateFrom} إلى ${dateTo}`}
         headerAction={
           <div className="flex gap-2">
-            <Button variant="success" size="sm">
+            <Button variant="success" size="sm" onClick={() => {
+              // Export to CSV
+              const csvData = [
+                ['التاريخ', 'البيان', 'مدين', 'دائن', 'الرصيد'],
+                ...ledgerData.map(row => [
+                  row.date,
+                  `"${row.description.replace(/"/g, '""')}"`, // Escape quotes
+                  row.debit,
+                  row.credit,
+                  row.balance
+                ]),
+                ['الإجمالي', '', totals.debit, totals.credit, totals.balance]
+              ];
+
+              const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+                + csvData.map(e => e.join(",")).join("\n");
+
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", `report_${dateFrom}_${dateTo}.csv`);
+              document.body.appendChild(link); // Required for FF
+              link.click();
+              document.body.removeChild(link);
+            }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              تصدير Excel
+              تصدير Excel (CSV)
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>

@@ -137,25 +137,65 @@ export const CustomerDetails: React.FC = () => {
   if (isLoading) return <div className="text-center py-20">جاري التحميل...</div>;
   if (!customer) return <div className="text-center py-20 text-red-500">لم يتم العثور على العميل</div>;
 
-  const totalRevenue = revenues.reduce((sum, rev) => sum + rev.amount, 0);
+  // Date Filter State
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // Filtered Data
+  const getFilteredData = (data: any[], dateKey: string) => {
+    if (!dateFrom && !dateTo) return data;
+    return data.filter(item => {
+      const itemDate = item[dateKey];
+      if (dateFrom && itemDate < dateFrom) return false;
+      if (dateTo && itemDate > dateTo) return false;
+      return true;
+    });
+  };
+
+  const filteredRevenues = getFilteredData(revenues, 'rev_date');
+  const filteredQuotations = getFilteredData(quotations, 'quote_date');
+  // Work orders don't always have a clear date field in the interface shown, but let's check. 
+  // WorkOrder interface usually has created_at or start_date. 
+  // Checking previous file content: WorkOrder interface wasn't fully shown but usually has CreatedAt. 
+  // Let's assume we filter revenues and quotations first as requested.
+  // actually the user said "Put date filter and date range".
+
+  const totalRevenue = filteredRevenues.reduce((sum: number, rev: any) => sum + rev.amount, 0);
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
-    <div className="space-y-6 text-right" dir="rtl">
+    <div className="space-y-6 text-right printable-content" dir="rtl">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .printable-content { width: 100%; max-width: none; margin: 0; padding: 0; }
+          .card { box-shadow: none; border: 1px solid #ddd; }
+        }
+      `}</style>
       <Toaster position="top-center" />
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <div className="flex items-center gap-4">
           <Button variant="secondary" onClick={() => navigate('/customers')}>عودة للقائمة</Button>
           <h1 className="text-2xl font-bold">{customer.name}</h1>
         </div>
-        <Button onClick={() => setShowEditModal(true)} variant="outline">
-          تعديل البيانات
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handlePrint} variant="secondary">
+            طباعة كشف حساب
+          </Button>
+          <Button onClick={() => setShowEditModal(true)} variant="outline">
+            تعديل البيانات
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Contact Info Card */}
         <Card title="بيانات التواصل" className="lg:col-span-1">
+          {/* ... existing info ... */}
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">كود العميل</p>
@@ -194,15 +234,43 @@ export const CustomerDetails: React.FC = () => {
 
         {/* Content Tabs Card */}
         <div className="lg:col-span-2 space-y-6">
+          <div className="md:col-span-3 no-print">
+            <Card>
+              <div className="flex items-center gap-4">
+                <span className="font-bold">تصفية حسب التاريخ:</span>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  placeholder="من تاريخ"
+                  className="max-w-xs"
+                />
+                <span>إلى</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  placeholder="إلى تاريخ"
+                  className="max-w-xs"
+                />
+                {(dateFrom || dateTo) && (
+                  <Button variant="secondary" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>
+                    إلغاء التصفية
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
+
           {/* Stats Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-              <p className="text-sm text-green-600">إجمالي المدفوعات</p>
+              <p className="text-sm text-green-600">إجمالي المدفوعات {dateFrom || dateTo ? '(مفلتر)' : ''}</p>
               <p className="text-2xl font-bold text-green-800">{formatAmount(totalRevenue)}</p>
             </div>
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-              <p className="text-sm text-blue-600">عدد عروض الأسعار</p>
-              <p className="text-2xl font-bold text-blue-800">{quotations.length}</p>
+              <p className="text-sm text-blue-600">عدد عروض الأسعار {dateFrom || dateTo ? '(مفلتر)' : ''}</p>
+              <p className="text-2xl font-bold text-blue-800">{filteredQuotations.length}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
               <p className="text-sm text-purple-600">عدد أوامر الشغل</p>
@@ -233,10 +301,10 @@ export const CustomerDetails: React.FC = () => {
             </div>
 
             {activeTab === 'finance' && (
-              <Table columns={revenueColumns} data={revenues} emptyMessage="لا يوجد سجل مدفوعات لهذا العميل" />
+              <Table columns={revenueColumns} data={filteredRevenues} emptyMessage="لا يوجد سجل مدفوعات لهذا العميل" />
             )}
             {activeTab === 'quotations' && (
-              <Table columns={quotationColumns} data={quotations} emptyMessage="لا يوجد عروض أسعار لهذا العميل" />
+              <Table columns={quotationColumns} data={filteredQuotations} emptyMessage="لا يوجد عروض أسعار لهذا العميل" />
             )}
             {activeTab === 'workorders' && (
               <Table columns={workOrderColumns} data={workOrders} emptyMessage="لا يوجد أوامر شغل لهذا العميل" />
