@@ -20,6 +20,7 @@ export const Revenue: React.FC = () => {
   const [formData, setFormData] = useState({
     rev_date: new Date().toISOString().split('T')[0],
     amount: '',
+    code: '',
     receipt_no: '',
     customer_id: '',
     revtype_id: '',
@@ -61,6 +62,7 @@ export const Revenue: React.FC = () => {
       setFormData({
         rev_date: new Date().toISOString().split('T')[0],
         amount: '',
+        code: '', // Auto-generated
         receipt_no: '',
         customer_id: customers.length > 0 ? customers[0].customer_id : '',
         revtype_id: revenueTypes.length > 0 ? revenueTypes[0].revtype_id : '',
@@ -93,6 +95,7 @@ export const Revenue: React.FC = () => {
         await financeService.updateRevenue(currentId, {
           rev_date: formData.rev_date,
           amount: amount,
+          code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
           revtype_id: formData.revtype_id,
@@ -106,6 +109,7 @@ export const Revenue: React.FC = () => {
         await financeService.createRevenue({
           rev_date: formData.rev_date,
           amount: amount,
+          code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
           revtype_id: formData.revtype_id,
@@ -120,6 +124,7 @@ export const Revenue: React.FC = () => {
       setFormData({
         rev_date: new Date().toISOString().split('T')[0],
         amount: '',
+        code: '',
         receipt_no: '',
         customer_id: customers[0]?.customer_id || '',
         revtype_id: revenueTypes[0]?.revtype_id || '',
@@ -143,6 +148,7 @@ export const Revenue: React.FC = () => {
     setFormData({
       rev_date: revenue.rev_date,
       amount: revenue.amount.toString(),
+      code: revenue.code || '',
       receipt_no: revenue.receipt_no || '',
       customer_id: revenue.customer_id,
       revtype_id: revenue.revtype_id,
@@ -174,6 +180,7 @@ export const Revenue: React.FC = () => {
     setFormData({
       rev_date: new Date().toISOString().split('T')[0],
       amount: '',
+      code: '',
       receipt_no: '',
       customer_id: customers[0]?.customer_id || '',
       revtype_id: revenueTypes[0]?.revtype_id || '',
@@ -342,6 +349,12 @@ export const Revenue: React.FC = () => {
                 {isEditing ? 'تعديل إيراد' : 'إضافة إيراد جديد'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="كود الإيراد"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder={isEditing ? formData.code : 'تلقائي (يمكنك الكتابة للتعديل)'}
+                />
                 <Input
                   label="التاريخ *"
                   type="date"

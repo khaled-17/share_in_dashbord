@@ -20,6 +20,7 @@ export const Expenses: React.FC = () => {
   const [formData, setFormData] = useState({
     exp_date: new Date().toISOString().split('T')[0],
     amount: '',
+    code: '',
     receipt_no: '',
     supplier_id: '',
     exptype_id: '',
@@ -61,6 +62,7 @@ export const Expenses: React.FC = () => {
       setFormData({
         exp_date: new Date().toISOString().split('T')[0],
         amount: '',
+        code: '', // Will be auto-generated
         receipt_no: '',
         supplier_id: suppliers.length > 0 ? suppliers[0].supplier_id : '',
         exptype_id: expenseTypes.length > 0 ? expenseTypes[0].exptype_id : '',
@@ -93,6 +95,7 @@ export const Expenses: React.FC = () => {
         await financeService.updateExpense(currentId, {
           exp_date: formData.exp_date,
           amount: amount,
+          code: formData.code || undefined, // Send if edited
           receipt_no: formData.receipt_no || null,
           supplier_id: formData.supplier_id,
           exptype_id: formData.exptype_id,
@@ -106,6 +109,7 @@ export const Expenses: React.FC = () => {
         await financeService.createExpense({
           exp_date: formData.exp_date,
           amount: amount,
+          code: formData.code || undefined, // Send if manually entered
           receipt_no: formData.receipt_no || null,
           supplier_id: formData.supplier_id,
           exptype_id: formData.exptype_id,
@@ -120,6 +124,7 @@ export const Expenses: React.FC = () => {
       setFormData({
         exp_date: new Date().toISOString().split('T')[0],
         amount: '',
+        code: '',
         receipt_no: '',
         supplier_id: suppliers[0]?.supplier_id || '',
         exptype_id: expenseTypes[0]?.exptype_id || '',
@@ -143,6 +148,7 @@ export const Expenses: React.FC = () => {
     setFormData({
       exp_date: expense.exp_date,
       amount: expense.amount.toString(),
+      code: expense.code || '',
       receipt_no: expense.receipt_no || '',
       supplier_id: expense.supplier_id,
       exptype_id: expense.exptype_id,
@@ -174,6 +180,7 @@ export const Expenses: React.FC = () => {
     setFormData({
       exp_date: new Date().toISOString().split('T')[0],
       amount: '',
+      code: '',
       receipt_no: '',
       supplier_id: suppliers[0]?.supplier_id || '',
       exptype_id: expenseTypes[0]?.exptype_id || '',
@@ -342,6 +349,12 @@ export const Expenses: React.FC = () => {
                 {isEditing ? 'تعديل مصروف' : 'إضافة مصروف جديد'}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="كود المصروف"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder={isEditing ? formData.code : 'تلقائي (يمكنك الكتابة للتعديل)'}
+                />
                 <Input
                   label="التاريخ *"
                   type="date"
