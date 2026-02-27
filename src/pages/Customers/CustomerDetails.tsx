@@ -85,12 +85,12 @@ export const CustomerDetails: React.FC = () => {
     try {
       const payload = {
         name: formData.name.trim(),
-        contact_person: formData.contact_person.trim() || null,
-        company_email: formData.company_email.trim() || null,
-        contact_email: formData.contact_email.trim() || null,
-        phone: formData.phone.trim() || null,
-        secondary_phone: formData.secondary_phone.trim() || null,
-        address: formData.address.trim() || null,
+        contact_person: formData.contact_person.trim(),
+        company_email: formData.company_email.trim(),
+        contact_email: formData.contact_email.trim(),
+        phone: formData.phone.trim(),
+        secondary_phone: formData.secondary_phone.trim(),
+        address: formData.address.trim(),
       };
 
       await customerService.update(customerId, payload);

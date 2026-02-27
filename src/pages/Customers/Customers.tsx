@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Table, Input, Modal } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { customerService } from '../../services/customers';
@@ -10,6 +10,18 @@ export const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -25,18 +37,6 @@ export const Customers: React.FC = () => {
   });
   const [showModal, setShowModal] = useState(false);
 
-  // Filtered customers based on search
-  const filteredCustomers = useMemo(() => {
-    if (!searchTerm.trim()) return customers;
-    const term = searchTerm.toLowerCase();
-    return customers.filter(c =>
-      (c.name?.toLowerCase().includes(term)) ||
-      (c.customer_id?.toLowerCase().includes(term)) ||
-      (c.phone && String(c.phone).includes(term)) ||
-      (c.contact_person?.toLowerCase().includes(term))
-    );
-  }, [customers, searchTerm]);
-
   // Generate next customer ID
   const generateNextId = () => {
     if (!Array.isArray(customers) || customers.length === 0) return 'C00001';
@@ -50,22 +50,28 @@ export const Customers: React.FC = () => {
     return 'C' + (maxId + 1).toString().padStart(5, '0');
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await customerService.getAll();
-      setCustomers(Array.isArray(data) ? data : []);
+      const res = await customerService.getAll({ page, limit, search: debouncedSearch });
+      setCustomers(res.data || []);
+      if (res.pagination) {
+        setTotal(res.pagination.total);
+      } else {
+        setTotal(res.data?.length || 0);
+      }
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
       setCustomers([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, limit, debouncedSearch]);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [fetchCustomers]);
 
   const handleOpenAdd = () => {
     setIsEditing(false);
@@ -110,12 +116,12 @@ export const Customers: React.FC = () => {
     try {
       const payload = {
         name: formData.name.trim(),
-        contact_person: formData.contact_person.trim() || null,
-        company_email: formData.company_email.trim() || null,
-        contact_email: formData.contact_email.trim() || null,
-        phone: formData.phone.trim() || null,
-        secondary_phone: formData.secondary_phone.trim() || null,
-        address: formData.address.trim() || null,
+        contact_person: formData.contact_person.trim(),
+        company_email: formData.company_email.trim(),
+        contact_email: formData.contact_email.trim(),
+        phone: formData.phone.trim(),
+        secondary_phone: formData.secondary_phone.trim(),
+        address: formData.address.trim(),
       };
 
       if (isEditing && currentId) {
@@ -215,12 +221,42 @@ export const Customers: React.FC = () => {
             <p className="text-gray-500">جاري تحميل العملاء...</p>
           </div>
         ) : (
-          <Table
-            columns={columns}
-            data={filteredCustomers}
-            emptyMessage={searchTerm ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد عملاء مضافين بعد'}
-            onRowClick={(c) => navigate(`/customers/${c.customer_id}`)}
-          />
+          <>
+            <Table
+              columns={columns}
+              data={customers}
+              emptyMessage={debouncedSearch ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد عملاء مضافين بعد'}
+              onRowClick={(c) => navigate(`/customers/${c.customer_id}`)}
+            />
+            {total > limit && (
+              <div className="flex justify-between items-center mt-4 border-t pt-4">
+                <span className="text-sm text-gray-500">
+                  إجمالي {total} عميل
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    السابق
+                  </Button>
+                  <span className="flex items-center px-4 text-sm text-gray-700">
+                    صفحة {page} من {Math.ceil(total / limit)}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={page >= Math.ceil(total / limit)}
+                  >
+                    التالي
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </Card>
 
