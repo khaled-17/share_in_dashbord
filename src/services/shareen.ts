@@ -17,7 +17,8 @@ export const shareenService = {
             if (error) throw error;
             return data as ShareenItem[];
         }
-        return api.get<ShareenItem[]>('/shareen');
+        const res = await api.get<any>('/shareen');
+        return (res.data ? res.data : res) as ShareenItem[];
     },
 
     create: async (): Promise<ShareenItem> => {
@@ -30,6 +31,7 @@ export const shareenService = {
             if (error) throw error;
             return result as ShareenItem;
         }
-        return api.post<ShareenItem>('/shareen', {});
+        const res = await api.post<any>('/shareen', {});
+        return (res.data ? res.data : res) as ShareenItem;
     }
 };

@@ -24,7 +24,8 @@ export const companyService = {
             if (error && error.code !== 'PGRST116') throw error;
             return data as CompanySettings;
         }
-        return api.get<CompanySettings>('/company');
+        const res = await api.get<any>('/company');
+        return (res.data ? res.data : res) as CompanySettings;
     },
 
     updateSettings: async (data: Partial<CompanySettings>) => {
@@ -37,6 +38,7 @@ export const companyService = {
             if (error) throw error;
             return result as CompanySettings;
         }
-        return api.put<CompanySettings>('/company', data);
+        const res = await api.put<any>('/company', data);
+        return (res.data ? res.data : res) as CompanySettings;
     },
 };

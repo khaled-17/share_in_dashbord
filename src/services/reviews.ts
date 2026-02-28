@@ -23,7 +23,8 @@ export const reviewsService = {
             if (error) throw error;
             return data as CustomerReview[];
         }
-        return api.get<CustomerReview[]>('/reviews');
+        const res = await api.get<any>('/reviews');
+        return (res.data ? res.data : res) as CustomerReview[];
     },
 
     create: async (data: Omit<CustomerReview, 'id' | 'createdAt'>) => {
@@ -36,6 +37,7 @@ export const reviewsService = {
             if (error) throw error;
             return result as CustomerReview;
         }
-        return api.post<CustomerReview>('/reviews', data);
+        const res = await api.post<any>('/reviews', data);
+        return (res.data ? res.data : res) as CustomerReview;
     },
 };
