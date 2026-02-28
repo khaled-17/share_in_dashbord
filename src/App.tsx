@@ -16,6 +16,7 @@ import { Shareen } from './pages/Shareen';
 import { Settings } from './pages/Settings';
 import { WorkOrders } from './pages/WorkOrders';
 import { Partners } from './pages/Partners';
+import { PartnerDetails } from './pages/Partners/PartnerDetails';
 import { ReceiptVouchers } from './pages/ReceiptVouchers';
 import { PaymentVouchers } from './pages/PaymentVouchers';
 import { Checks } from './pages/Checks';
@@ -130,6 +131,7 @@ const RouteHandler = () => {
         <Route path="/shareen" element={<Shareen />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/partners/:id" element={<PartnerDetails />} />
         <Route path="/receipt-vouchers" element={<ReceiptVouchers />} />
         <Route path="/payment-vouchers" element={<PaymentVouchers />} />
         <Route path="/checks" element={<Checks />} />
@@ -142,7 +144,7 @@ function App() {
   return (
     <HashRouter>
       <RouteHandler />
-    
+
     </HashRouter>
   );
 }

@@ -78,7 +78,7 @@ export const Quotations: React.FC = () => {
         quotationService.getProjectTypes()
       ]);
 
-      setCustomers(customersData || []);
+      setCustomers(customersData?.data || []);
       setProjectTypes(projectTypesData || []);
 
       const transformed = (quotationsData || []).map(q => ({

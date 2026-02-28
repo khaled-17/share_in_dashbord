@@ -64,7 +64,7 @@ export const ReceiptVouchers: React.FC = () => {
                 customerService.getAll(),
                 partnerService.getAll()
             ]);
-            setCustomers(customersData || []);
+            setCustomers(customersData?.data || []);
             setPartners(partnersData || []);
         } catch (err: any) {
             toast.error('فشل في تحميل البيانات المساعدة');
@@ -243,8 +243,8 @@ export const ReceiptVouchers: React.FC = () => {
             header: 'طريقة الدفع',
             render: (v: ReceiptVoucher) => (
                 <span className={`px-2 py-1 rounded-full text-xs ${v.payment_method === 'cash' ? 'bg-green-100 text-green-800' :
-                        v.payment_method === 'check' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-purple-100 text-purple-800'
+                    v.payment_method === 'check' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-purple-100 text-purple-800'
                     }`}>
                     {getPaymentMethodLabel(v.payment_method)}
                 </span>

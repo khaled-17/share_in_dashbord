@@ -28,7 +28,7 @@ export const WorkOrders: React.FC = () => {
             ]);
             setWorkOrders(orders || []);
             setQuotations(quotes || []);
-            setCustomers(custs || []);
+            setCustomers(custs?.data || []);
         } catch (err: any) {
             toast.error('فشل في تحميل البيانات: ' + err.message);
         } finally {

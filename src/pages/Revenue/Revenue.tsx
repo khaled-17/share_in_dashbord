@@ -41,7 +41,7 @@ export const Revenue: React.FC = () => {
       ]);
 
       setRevenues(revenuesData || []);
-      setCustomers(customersData || []);
+      setCustomers(customersData?.data || []);
       setRevenueTypes(typesData || []);
     } catch (err: any) {
       toast.error('فشل في تحميل البيانات: ' + err.message);
