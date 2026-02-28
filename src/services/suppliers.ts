@@ -26,7 +26,8 @@ export const supplierService = {
             if (error) throw error;
             return data as Supplier[];
         }
-        return api.get<Supplier[]>('/suppliers');
+        const res = await api.get<any>('/suppliers');
+        return (res.data ? res.data : res) as Supplier[];
     },
 
     getById: async (id: string) => {
@@ -43,7 +44,8 @@ export const supplierService = {
             if (error) throw error;
             return data as Supplier;
         }
-        return api.get<Supplier>(`/suppliers/${id}`);
+        const res = await api.get<any>(`/suppliers/${id}`);
+        return (res.data ? res.data : res) as Supplier;
     },
 
     create: async (data: Omit<Supplier, 'id' | 'created_at'>) => {
@@ -56,7 +58,8 @@ export const supplierService = {
             if (error) throw error;
             return result as Supplier;
         }
-        return api.post<Supplier>('/suppliers', data);
+        const res = await api.post<any>('/suppliers', data);
+        return (res.data ? res.data : res) as Supplier;
     },
 
     update: async (id: number, data: Partial<Supplier>) => {
@@ -70,7 +73,8 @@ export const supplierService = {
             if (error) throw error;
             return result as Supplier;
         }
-        return api.put<Supplier>(`/suppliers/${id}`, data);
+        const res = await api.put<any>(`/suppliers/${id}`, data);
+        return (res.data ? res.data : res) as Supplier;
     },
 
     delete: async (id: number) => {
@@ -82,6 +86,7 @@ export const supplierService = {
             if (error) throw error;
             return { message: 'Supplier deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/suppliers/${id}`);
+        const res = await api.delete<any>(`/suppliers/${id}`);
+        return res;
     },
 };

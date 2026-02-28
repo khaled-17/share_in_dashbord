@@ -22,7 +22,8 @@ export const employeeService = {
             if (error) throw error;
             return data as Employee[];
         }
-        return api.get<Employee[]>('/employees');
+        const res = await api.get<any>('/employees');
+        return (res.data ? res.data : res) as Employee[];
     },
 
     create: async (data: Omit<Employee, 'id'>) => {
@@ -35,7 +36,8 @@ export const employeeService = {
             if (error) throw error;
             return result as Employee;
         }
-        return api.post<Employee>('/employees', data);
+        const res = await api.post<any>('/employees', data);
+        return (res.data ? res.data : res) as Employee;
     },
 
     update: async (id: number, data: Partial<Employee>) => {
@@ -49,7 +51,8 @@ export const employeeService = {
             if (error) throw error;
             return result as Employee;
         }
-        return api.put<Employee>(`/employees/${id}`, data);
+        const res = await api.put<any>(`/employees/${id}`, data);
+        return (res.data ? res.data : res) as Employee;
     },
 
     delete: async (id: number) => {
@@ -58,6 +61,7 @@ export const employeeService = {
             if (error) throw error;
             return { message: 'Employee deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/employees/${id}`);
+        const res = await api.delete<{ message: string }>(`/employees/${id}`);
+        return res;
     },
 };

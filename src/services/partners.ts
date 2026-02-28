@@ -35,7 +35,8 @@ export const partnerService = {
             if (error) throw error;
             return data as Partner[];
         }
-        return api.get<Partner[]>('/partners');
+        const res = await api.get<any>('/partners');
+        return (res.data ? res.data : res) as Partner[];
     },
 
     getById: async (id: number) => {
@@ -52,7 +53,8 @@ export const partnerService = {
             if (error) throw error;
             return data as Partner;
         }
-        return api.get<Partner>(`/partners/${id}`);
+        const res = await api.get<any>(`/partners/${id}`);
+        return (res.data ? res.data : res) as Partner;
     },
 
     getSummary: async (id: number) => {
@@ -85,7 +87,8 @@ export const partnerService = {
                 net_capital: data.initial_capital + totalIncreases - totalWithdrawals
             } as PartnerSummary;
         }
-        return api.get<PartnerSummary>(`/partners/${id}/summary`);
+        const res = await api.get<any>(`/partners/${id}/summary`);
+        return (res.data ? res.data : res) as PartnerSummary;
     },
 
     create: async (data: Omit<Partner, 'id' | 'current_capital' | 'created_at'>) => {
@@ -98,7 +101,8 @@ export const partnerService = {
             if (error) throw error;
             return result as Partner;
         }
-        return api.post<Partner>('/partners', data);
+        const res = await api.post<any>('/partners', data);
+        return (res.data ? res.data : res) as Partner;
     },
 
     update: async (id: number, data: Partial<Pick<Partner, 'name' | 'phone' | 'email'>>) => {
@@ -112,7 +116,8 @@ export const partnerService = {
             if (error) throw error;
             return result as Partner;
         }
-        return api.put<Partner>(`/partners/${id}`, data);
+        const res = await api.put<any>(`/partners/${id}`, data);
+        return (res.data ? res.data : res) as Partner;
     },
 
     delete: async (id: number) => {
@@ -121,6 +126,7 @@ export const partnerService = {
             if (error) throw error;
             return { message: 'Partner deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/partners/${id}`);
+        const res = await api.delete<any>(`/partners/${id}`);
+        return res;
     },
 };
