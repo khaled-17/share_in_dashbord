@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
+import { reportService } from '../../services/reports';
 import { financeService } from '../../services/finance';
 import { receiptVoucherService, paymentVoucherService } from '../../services/vouchers';
+import { APP_CONFIG } from '../../config';
 
 interface LedgerItem {
   date: string;
@@ -15,18 +17,43 @@ interface LedgerItem {
 export const Reports: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('2025-12-01');
   const [dateTo, setDateTo] = useState('2025-12-31');
-  const [reportType, setReportType] = useState('receipts'); // Default to 'receipts' as per user request example, or 'all'
+  const [reportType, setReportType] = useState('all');
   const [ledgerData, setLedgerData] = useState<LedgerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totals, setTotals] = useState({ debit: 0, credit: 0, balance: 0 });
+  const [budgetStats, setBudgetStats] = useState({
+    sales: 0,
+    expenses: 0,
+    capitalWithdrawn: 0,
+    capitalAdded: 0,
+    netProfit: 0
+  });
 
   const fetchReportData = async () => {
     try {
       setIsLoading(true);
+
+      if (APP_CONFIG.currentSource === 'api') {
+        const response = await reportService.getLedgerReport(dateFrom, dateTo);
+
+        // Filter ledger items if not 'all'
+        let filteredItems = response.ledgerData;
+        if (reportType === 'receipts') {
+          filteredItems = response.ledgerData.filter(item => item.debit > 0 || item.description === 'رصيد أول المدة');
+        } else if (reportType === 'payments') {
+          filteredItems = response.ledgerData.filter(item => item.credit > 0 || item.description === 'رصيد أول المدة');
+        }
+
+        setLedgerData(filteredItems);
+        setBudgetStats(response.budgetStats);
+        setTotals(response.totals);
+        return;
+      }
+
+      // Legacy Supabase loading logic (as a fallback)
       let openingBalance = 0;
       let transactions: LedgerItem[] = [];
 
-      // Fetch all data
       const [allRevenue, allExpenses, allReceiptVouchers, allPaymentVouchers] = await Promise.all([
         financeService.getAllRevenue(),
         financeService.getAllExpenses(),
@@ -39,131 +66,80 @@ export const Reports: React.FC = () => {
       const receiptVouchers = allReceiptVouchers || [];
       const paymentVouchers = allPaymentVouchers || [];
 
-      // 1. Calculate Opening Balance (Sum of all transactions before dateFrom)
-      // Filter previous revenue + receipts
-      const prevRevenueTotal = revenues
-        .filter((item: any) => item.rev_date < dateFrom)
-        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-
-      const prevReceiptsTotal = receiptVouchers
-        .filter((item: any) => item.voucher_date < dateFrom)
-        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-
-      // Filter previous expenses + payments
-      const prevExpensesTotal = expenses
-        .filter((item: any) => item.exp_date < dateFrom)
-        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-
-      const prevPaymentsTotal = paymentVouchers
-        .filter((item: any) => item.voucher_date < dateFrom)
-        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      // Logic for opening balance and transformations (mostly unchanged)
+      const prevRevenueTotal = revenues.filter((item: any) => item.rev_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevReceiptsTotal = receiptVouchers.filter((item: any) => item.voucher_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevExpensesTotal = expenses.filter((item: any) => item.exp_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevPaymentsTotal = paymentVouchers.filter((item: any) => item.voucher_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
       openingBalance = (prevRevenueTotal + prevReceiptsTotal) - (prevExpensesTotal + prevPaymentsTotal);
 
-      // 2. Fetch Current Period Data
-      let currentRevenue: any[] = [];
-      let currentExpenses: any[] = [];
-      let currentReceipts: any[] = [];
-      let currentPayments: any[] = [];
+      let currentRevenue = revenues.filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo);
+      let currentReceipts = receiptVouchers.filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
+      let currentExpenses = expenses.filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo);
+      let currentPayments = paymentVouchers.filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
 
-      if (reportType === 'all' || reportType === 'receipts') {
-        currentRevenue = revenues
-          .filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo);
-
-        currentReceipts = receiptVouchers
-          .filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
+      if (reportType === 'receipts') {
+        currentExpenses = [];
+        currentPayments = [];
+      } else if (reportType === 'payments') {
+        currentRevenue = [];
+        currentReceipts = [];
       }
 
-      if (reportType === 'all' || reportType === 'payments') {
-        currentExpenses = expenses
-          .filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo);
-
-        currentPayments = paymentVouchers
-          .filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
-      }
-
-      // 3. Transform and Merge Data
-      const revenueItems: LedgerItem[] = currentRevenue.map((item: any) => ({
-        date: item.rev_date,
-        description: `إيراد: ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
-        debit: Number(item.amount),
-        credit: 0,
-        balance: 0
-      }));
-
-      const receiptItems: LedgerItem[] = currentReceipts.map((item: any) => ({
-        date: item.voucher_date,
-        description: `سند قبض ${item.voucher_number}: ${item.received_from} - ${item.description || ''}`,
-        debit: Number(item.amount),
-        credit: 0,
-        balance: 0
-      }));
-
-      const expenseItems: LedgerItem[] = currentExpenses.map((item: any) => ({
-        date: item.exp_date,
-        description: `مصروف: ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
-        debit: 0,
-        credit: Number(item.amount),
-        balance: 0
-      }));
-
-      const paymentItems: LedgerItem[] = currentPayments.map((item: any) => ({
-        date: item.voucher_date,
-        description: `سند صرف ${item.voucher_number}: ${item.paid_to} - ${item.description || ''}`,
-        debit: 0,
-        credit: Number(item.amount),
-        balance: 0
-      }));
-
-      transactions = [...revenueItems, ...receiptItems, ...expenseItems, ...paymentItems].sort((a, b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-
-      // 4. Calculate Running Balance
-      let runningBalance = openingBalance;
-      const finalData = [
-        {
-          date: dateFrom,
-          description: 'رصيد أول المدة',
-          debit: 0,
+      const transformed: LedgerItem[] = [
+        ...currentRevenue.map((item: any) => ({
+          date: item.rev_date,
+          description: `إيراد: ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
+          debit: Number(item.amount),
           credit: 0,
-          balance: openingBalance
-        },
-        ...transactions.map(item => {
-          runningBalance += item.debit - item.credit;
-          return { ...item, balance: runningBalance };
+          balance: 0
+        })),
+        ...currentReceipts.map((item: any) => ({
+          date: item.voucher_date,
+          description: `سند قبض ${item.voucher_number}: ${item.received_from} - ${item.description || ''}`,
+          debit: Number(item.amount),
+          credit: 0,
+          balance: 0
+        })),
+        ...currentExpenses.map((item: any) => ({
+          date: item.exp_date,
+          description: `مصروف: ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
+          debit: 0,
+          credit: Number(item.amount),
+          balance: 0
+        })),
+        ...currentPayments.map((item: any) => ({
+          date: item.voucher_date,
+          description: `سند صرف ${item.voucher_number}: ${item.paid_to || item.received_from}`,
+          debit: 0,
+          credit: Number(item.amount),
+          balance: 0
+        }))
+      ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      let runningBalance = openingBalance;
+      const final = [
+        { date: dateFrom, description: 'رصيد أول المدة', debit: 0, credit: 0, balance: openingBalance },
+        ...transformed.map(i => {
+          runningBalance += i.debit - i.credit;
+          return { ...i, balance: runningBalance };
         })
       ];
 
-      setLedgerData(finalData);
-
-      // Calculate totals for the period
-      const totalDebit = transactions.reduce((sum, item) => sum + item.debit, 0);
-      const totalCredit = transactions.reduce((sum, item) => sum + item.credit, 0);
+      setLedgerData(final);
       setTotals({
-        debit: totalDebit,
-        credit: totalCredit,
+        debit: transformed.reduce((s, i) => s + i.debit, 0),
+        credit: transformed.reduce((s, i) => s + i.credit, 0),
         balance: runningBalance
       });
 
-      // Calculate Budget Stats
-      const totalSales = currentRevenue.reduce((sum, item) => sum + Number(item.amount), 0);
-      const totalExpenses = currentExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
-
-      const capitalIncrease = currentReceipts
-        .filter((item: any) => item.source_type === 'partner_capital' || item.partner_id)
-        .reduce((sum, item) => sum + Number(item.amount), 0);
-
-      const withdrawals = currentPayments
-        .filter((item: any) => item.beneficiary_type === 'partner_withdrawal' || item.partner_id)
-        .reduce((sum, item) => sum + Number(item.amount), 0);
-
       setBudgetStats({
-        sales: totalSales,
-        expenses: totalExpenses,
-        capitalWithdrawn: withdrawals,
-        capitalAdded: capitalIncrease,
-        netProfit: totalSales - totalExpenses
+        sales: currentRevenue.reduce((sum, item) => sum + Number(item.amount), 0),
+        expenses: currentExpenses.reduce((sum, item) => sum + Number(item.amount), 0),
+        capitalAdded: currentReceipts.filter((item: any) => item.source_type === 'partner_capital' || item.partner_id).reduce((sum, item) => sum + Number(item.amount), 0),
+        capitalWithdrawn: currentPayments.filter((item: any) => item.beneficiary_type === 'partner_withdrawal' || item.partner_id).reduce((sum, item) => sum + Number(item.amount), 0),
+        netProfit: 0
       });
 
     } catch (err: any) {
@@ -173,14 +149,6 @@ export const Reports: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const [budgetStats, setBudgetStats] = useState({
-    sales: 0,
-    expenses: 0,
-    capitalWithdrawn: 0,
-    capitalAdded: 0,
-    netProfit: 0
-  });
 
   // Initial fetch
   useEffect(() => {

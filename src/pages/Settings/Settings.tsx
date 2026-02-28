@@ -4,7 +4,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { settingsService, type ExpenseType, type RevenueType, type ProjectType } from '../../services/settings';
 import { companyService, type CompanySettings } from '../../services/company';
 
-type TabType = 'expense' | 'revenue' | 'project' | 'company';
+import { reviewsService, type CustomerReview } from '../../services/reviews';
+
+type TabType = 'expense' | 'revenue' | 'project' | 'company' | 'reviews';
 
 export const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('expense');
@@ -25,7 +27,6 @@ export const Settings: React.FC = () => {
     // Expense Types State
     const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
     const [expenseLoading, setExpenseLoading] = useState(true);
-    // ... rest of state
     const [expenseEditing, setExpenseEditing] = useState(false);
     const [expenseCurrentId, setExpenseCurrentId] = useState<number | null>(null);
     const [expenseFormData, setExpenseFormData] = useState({
@@ -58,19 +59,57 @@ export const Settings: React.FC = () => {
     });
     const [projectShowForm, setProjectShowForm] = useState(false);
 
-    // ========== GENERAL FUNCTIONS ==========
+    // Reviews State
+    const [reviews, setReviews] = useState<CustomerReview[]>([]);
+    const [reviewsLoading, setReviewsLoading] = useState(true);
+    const [reviewShowForm, setReviewShowForm] = useState(false);
+    const [reviewFormData, setReviewFormData] = useState({
+        name: '',
+        role: '',
+        review: '',
+        rating: 5,
+        phoneNumber: ''
+    });
+
     const fetchData = async () => {
         await Promise.all([
             fetchExpenseTypes(),
             fetchRevenueTypes(),
             fetchProjectTypes(),
-            fetchCompanyInfo()
+            fetchCompanyInfo(),
+            fetchReviews()
         ]);
     };
 
-console.log(companyInfo,companyLoading);
+    const fetchReviews = async () => {
+        try {
+            setReviewsLoading(true);
+            const data = await reviewsService.getAll();
+            setReviews(data || []);
+        } catch (err: any) {
+            toast.error('فشل في تحميل المراجعات: ' + err.message);
+        } finally {
+            setReviewsLoading(false);
+        }
+    };
 
-    
+    const handleReviewSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const loadingToast = toast.loading('جاري الحفظ...');
+        try {
+            await reviewsService.create(reviewFormData);
+            setReviewShowForm(false);
+            setReviewFormData({ name: '', role: '', review: '', rating: 5, phoneNumber: '' });
+            fetchReviews();
+            toast.success('تمت إضافة المراجعة بنجاح', { id: loadingToast });
+        } catch (err: any) {
+            toast.error('فشل الإضافة: ' + err.message, { id: loadingToast });
+        }
+    };
+
+    console.log(companyInfo, companyLoading);
+
+
     const fetchCompanyInfo = async () => {
         try {
             setCompanyLoading(true);
@@ -352,6 +391,7 @@ console.log(companyInfo,companyLoading);
                     <button onClick={() => setActiveTab('revenue')} className={`pb-2 px-4 ${activeTab === 'revenue' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع الإيرادات</button>
                     <button onClick={() => setActiveTab('project')} className={`pb-2 px-4 ${activeTab === 'project' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>أنواع المشاريع</button>
                     <button onClick={() => setActiveTab('company')} className={`pb-2 px-4 ${activeTab === 'company' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>ملف الشركة</button>
+                    <button onClick={() => setActiveTab('reviews')} className={`pb-2 px-4 ${activeTab === 'reviews' ? 'border-b-2 border-primary-600 text-primary-600 font-bold' : ''}`}>آراء العملاء</button>
                 </div>
 
                 <div className="flex justify-end mb-4">
@@ -359,6 +399,7 @@ console.log(companyInfo,companyLoading);
                         <Button onClick={() => {
                             if (activeTab === 'expense') setExpenseShowForm(!expenseShowForm);
                             else if (activeTab === 'revenue') setRevenueShowForm(!revenueShowForm);
+                            else if (activeTab === 'reviews') setReviewShowForm(!reviewShowForm);
                             else {
                                 if (!projectShowForm) {
                                     setProjectShowForm(true);
@@ -368,7 +409,8 @@ console.log(companyInfo,companyLoading);
                         }}>
                             {activeTab === 'expense' ? (expenseShowForm ? 'إخفاء' : 'إضافة') :
                                 activeTab === 'revenue' ? (revenueShowForm ? 'إخفاء' : 'إضافة') :
-                                    (projectShowForm ? 'إخفاء' : 'إضافة نوع مشروع')}
+                                    activeTab === 'reviews' ? (reviewShowForm ? 'إخفاء' : 'إضافة مراجعة') :
+                                        (projectShowForm ? 'إخفاء' : 'إضافة نوع مشروع')}
                         </Button>
                     )}
                 </div>
@@ -477,6 +519,78 @@ console.log(companyInfo,companyLoading);
                             </form>
                         )}
                         {revenueLoading ? <div className="text-center py-8">جاري التحميل...</div> : <Table columns={revenueColumns} data={revenueTypes} />}
+                    </>
+                )}
+
+                {activeTab === 'reviews' && (
+                    <>
+                        {reviewShowForm && (
+                            <form onSubmit={handleReviewSubmit} className="mb-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <Input
+                                        label="اسم العميل *"
+                                        value={reviewFormData.name}
+                                        onChange={e => setReviewFormData({ ...reviewFormData, name: e.target.value })}
+                                        required
+                                    />
+                                    <Input
+                                        label="الوظيفة / الصفة"
+                                        value={reviewFormData.role}
+                                        onChange={e => setReviewFormData({ ...reviewFormData, role: e.target.value })}
+                                    />
+                                    <Input
+                                        label="رقم الهاتف"
+                                        value={reviewFormData.phoneNumber}
+                                        onChange={e => setReviewFormData({ ...reviewFormData, phoneNumber: e.target.value })}
+                                    />
+                                    <div className="md:col-span-2 lg:col-span-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">المراجعة / الرأي *</label>
+                                        <textarea
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-right"
+                                            rows={3}
+                                            value={reviewFormData.review}
+                                            onChange={e => setReviewFormData({ ...reviewFormData, review: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <label className="text-sm font-medium text-gray-700">التقييم:</label>
+                                        <select
+                                            className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                                            value={reviewFormData.rating}
+                                            onChange={e => setReviewFormData({ ...reviewFormData, rating: parseInt(e.target.value) })}
+                                        >
+                                            {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} نجوم</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-6">
+                                    <Button type="submit">إضافة المراجعة</Button>
+                                    <Button type="button" variant="secondary" onClick={() => setReviewShowForm(false)}>إلغاء</Button>
+                                </div>
+                            </form>
+                        )}
+                        {reviewsLoading ? (
+                            <div className="text-center py-8">جاري التحميل...</div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {reviews.map(review => (
+                                    <div key={review.id} className="p-4 bg-white border rounded-lg shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="font-bold text-gray-900">{review.name}</h4>
+                                                <p className="text-xs text-gray-500">{review.role || 'عميل'}</p>
+                                            </div>
+                                            <div className="flex text-yellow-400 text-xs">
+                                                {Array.from({ length: review.rating }).map((_, i) => <span key={i}>★</span>)}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-gray-700 italic">"{review.review}"</p>
+                                        <p className="text-[10px] text-gray-400 mt-2">{new Date(review.createdAt).toLocaleDateString('ar-EG')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </>
                 )}
             </Card>
