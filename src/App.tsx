@@ -1,6 +1,8 @@
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import { Dashboard } from './pages/Dashboard';
+import { Login } from './pages/Login/Login';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 import { Quotations, QuotationDetails } from './pages/Quotations';
 import { Reports } from './pages/Reports';
@@ -21,8 +23,21 @@ import { ReceiptVouchers } from './pages/ReceiptVouchers';
 import { PaymentVouchers } from './pages/PaymentVouchers';
 import { Checks } from './pages/Checks';
 
-const RouteHandler = () => {
+const AuthenticatedApp = () => {
+  const { user, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>;
+  }
+
+  if (!user && location.pathname !== '/login') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user && location.pathname === '/login') {
+    return <Navigate to="/" replace />;
+  }
 
   const getPageInfo = (pathname: string) => {
     // Dynamic routes
@@ -102,6 +117,14 @@ const RouteHandler = () => {
     return routes[pathname] || { title: 'لوحة التحكم', subtitle: '' };
   };
 
+  if (location.pathname === '/login') {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    );
+  }
+
   const { title, subtitle } = getPageInfo(location.pathname);
 
   return (
@@ -135,6 +158,7 @@ const RouteHandler = () => {
         <Route path="/receipt-vouchers" element={<ReceiptVouchers />} />
         <Route path="/payment-vouchers" element={<PaymentVouchers />} />
         <Route path="/checks" element={<Checks />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </MainLayout>
   );
@@ -143,8 +167,9 @@ const RouteHandler = () => {
 function App() {
   return (
     <HashRouter>
-      <RouteHandler />
-
+      <AuthProvider>
+        <AuthenticatedApp />
+      </AuthProvider>
     </HashRouter>
   );
 }
