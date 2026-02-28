@@ -43,7 +43,8 @@ export const financeService = {
             if (error) throw error;
             return data as Revenue[];
         }
-        return api.get<Revenue[]>('/revenue');
+        const res = await api.get<any>('/revenue');
+        return (res.data ? res.data : res) as Revenue[];
     },
 
     createRevenue: async (data: Omit<Revenue, 'id' | 'customer' | 'type'>) => {
@@ -56,7 +57,8 @@ export const financeService = {
             if (error) throw error;
             return result as Revenue;
         }
-        return api.post<Revenue>('/revenue', data);
+        const res = await api.post<any>('/revenue', data);
+        return (res.data ? res.data : res) as Revenue;
     },
 
     updateRevenue: async (id: number, data: Partial<Revenue>) => {
@@ -70,7 +72,8 @@ export const financeService = {
             if (error) throw error;
             return result as Revenue;
         }
-        return api.put<Revenue>(`/revenue/${id}`, data);
+        const res = await api.put<any>(`/revenue/${id}`, data);
+        return (res.data ? res.data : res) as Revenue;
     },
 
     deleteRevenue: async (id: number) => {
@@ -79,7 +82,8 @@ export const financeService = {
             if (error) throw error;
             return { message: 'Revenue deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/revenue/${id}`);
+        const res = await api.delete<any>(`/revenue/${id}`);
+        return res;
     },
 
     // Expenses
@@ -92,7 +96,8 @@ export const financeService = {
             if (error) throw error;
             return data as Expense[];
         }
-        return api.get<Expense[]>('/expenses');
+        const res = await api.get<any>('/expenses');
+        return (res.data ? res.data : res) as Expense[];
     },
 
     createExpense: async (data: Omit<Expense, 'id' | 'supplier' | 'type'>) => {
@@ -105,7 +110,8 @@ export const financeService = {
             if (error) throw error;
             return result as Expense;
         }
-        return api.post<Expense>('/expenses', data);
+        const res = await api.post<any>('/expenses', data);
+        return (res.data ? res.data : res) as Expense;
     },
 
     updateExpense: async (id: number, data: Partial<Expense>) => {
@@ -119,7 +125,8 @@ export const financeService = {
             if (error) throw error;
             return result as Expense;
         }
-        return api.put<Expense>(`/expenses/${id}`, data);
+        const res = await api.put<any>(`/expenses/${id}`, data);
+        return (res.data ? res.data : res) as Expense;
     },
 
     deleteExpense: async (id: number) => {
@@ -128,6 +135,7 @@ export const financeService = {
             if (error) throw error;
             return { message: 'Expense deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/expenses/${id}`);
+        const res = await api.delete<any>(`/expenses/${id}`);
+        return res;
     },
 };

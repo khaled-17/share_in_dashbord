@@ -45,7 +45,8 @@ export const quotationService = {
             if (error) throw error;
             return data as Quotation[];
         }
-        return api.get<Quotation[]>('/quotations');
+        const res = await api.get<any>('/quotations');
+        return (res.data ? res.data : res) as Quotation[];
     },
 
     getById: async (id: number): Promise<Quotation> => {
@@ -63,7 +64,8 @@ export const quotationService = {
             if (error) throw error;
             return data as Quotation;
         }
-        return api.get<Quotation>(`/quotations/${id}`);
+        const res = await api.get<any>(`/quotations/${id}`);
+        return (res.data ? res.data : res) as Quotation;
     },
 
     create: async (data: Partial<Quotation>): Promise<Quotation> => {
@@ -85,7 +87,8 @@ export const quotationService = {
 
             return result as Quotation;
         }
-        return api.post<Quotation>('/quotations', data);
+        const res = await api.post<any>('/quotations', data);
+        return (res.data ? res.data : res) as Quotation;
     },
 
     update: async (id: number, data: Partial<Quotation>): Promise<Quotation> => {
@@ -100,7 +103,8 @@ export const quotationService = {
             if (error) throw error;
             return result as Quotation;
         }
-        return api.put<Quotation>(`/quotations/${id}`, data);
+        const res = await api.put<any>(`/quotations/${id}`, data);
+        return (res.data ? res.data : res) as Quotation;
     },
 
     delete: async (id: number): Promise<{ message: string }> => {
@@ -112,7 +116,8 @@ export const quotationService = {
             if (error) throw error;
             return { message: 'Quotation deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/quotations/${id}`);
+        const res = await api.delete<any>(`/quotations/${id}`);
+        return res;
     },
 
     getProjectTypes: async (): Promise<ProjectType[]> => {
@@ -124,6 +129,7 @@ export const quotationService = {
             if (error) throw error;
             return data as ProjectType[];
         }
-        return api.get<ProjectType[]>('/settings/project-types');
+        const res = await api.get<any>('/settings/project-types');
+        return (res.data ? res.data : res) as ProjectType[];
     }
 };

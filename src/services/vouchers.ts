@@ -86,8 +86,9 @@ export const receiptVoucherService = {
             if (error) throw error;
             return data as ReceiptVoucher[];
         }
-        const queryStr = new URLSearchParams(params as any).toString();
-        return api.get<ReceiptVoucher[]>(`/receipt-vouchers${queryStr ? '?' + queryStr : ''}`);
+        const queryStr = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/receipt-vouchers${queryStr ? '?' + queryStr : ''}`);
+        return (res.data ? res.data : res) as ReceiptVoucher[];
     },
 
     getById: async (id: number) => {
@@ -100,7 +101,8 @@ export const receiptVoucherService = {
             if (error) throw error;
             return data as ReceiptVoucher;
         }
-        return api.get<ReceiptVoucher>(`/receipt-vouchers/${id}`);
+        const res = await api.get<any>(`/receipt-vouchers/${id}`);
+        return (res.data ? res.data : res) as ReceiptVoucher;
     },
 
     getStats: async (params?: { start_date?: string; end_date?: string }) => {
@@ -116,8 +118,9 @@ export const receiptVoucherService = {
                 pending_checks: 0
             } as VoucherStats;
         }
-        const query = new URLSearchParams(params as any).toString();
-        return api.get<VoucherStats>(`/receipt-vouchers/stats/summary${query ? '?' + query : ''}`);
+        const query = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/receipt-vouchers/stats/summary${query ? '?' + query : ''}`);
+        return (res.data ? res.data : res) as VoucherStats;
     },
 
     create: async (data: any) => {
@@ -130,7 +133,8 @@ export const receiptVoucherService = {
             if (error) throw error;
             return result as ReceiptVoucher;
         }
-        return api.post<ReceiptVoucher>('/receipt-vouchers', data);
+        const res = await api.post<any>('/receipt-vouchers', data);
+        return (res.data ? res.data : res) as ReceiptVoucher;
     },
 
     update: async (id: number, data: Partial<Pick<ReceiptVoucher, 'description' | 'received_from'>>) => {
@@ -144,7 +148,8 @@ export const receiptVoucherService = {
             if (error) throw error;
             return result as ReceiptVoucher;
         }
-        return api.put<ReceiptVoucher>(`/receipt-vouchers/${id}`, data);
+        const res = await api.put<any>(`/receipt-vouchers/${id}`, data);
+        return (res.data ? res.data : res) as ReceiptVoucher;
     },
 
     delete: async (id: number) => {
@@ -153,7 +158,8 @@ export const receiptVoucherService = {
             if (error) throw error;
             return { message: 'Voucher deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/receipt-vouchers/${id}`);
+        const res = await api.delete<any>(`/receipt-vouchers/${id}`);
+        return res;
     },
 };
 
@@ -178,8 +184,9 @@ export const paymentVoucherService = {
             if (error) throw error;
             return data as PaymentVoucher[];
         }
-        const queryStr = new URLSearchParams(params as any).toString();
-        return api.get<PaymentVoucher[]>(`/payment-vouchers${queryStr ? '?' + queryStr : ''}`);
+        const queryStr = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/payment-vouchers${queryStr ? '?' + queryStr : ''}`);
+        return (res.data ? res.data : res) as PaymentVoucher[];
     },
 
     getById: async (id: number) => {
@@ -192,7 +199,8 @@ export const paymentVoucherService = {
             if (error) throw error;
             return data as PaymentVoucher;
         }
-        return api.get<PaymentVoucher>(`/payment-vouchers/${id}`);
+        const res = await api.get<any>(`/payment-vouchers/${id}`);
+        return (res.data ? res.data : res) as PaymentVoucher;
     },
 
     getStats: async (params?: { start_date?: string; end_date?: string }) => {
@@ -207,8 +215,9 @@ export const paymentVoucherService = {
                 pending_checks: 0
             } as VoucherStats;
         }
-        const query = new URLSearchParams(params as any).toString();
-        return api.get<VoucherStats>(`/payment-vouchers/stats/summary${query ? '?' + query : ''}`);
+        const query = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/payment-vouchers/stats/summary${query ? '?' + query : ''}`);
+        return (res.data ? res.data : res) as VoucherStats;
     },
 
     create: async (data: any) => {
@@ -221,7 +230,8 @@ export const paymentVoucherService = {
             if (error) throw error;
             return result as PaymentVoucher;
         }
-        return api.post<PaymentVoucher>('/payment-vouchers', data);
+        const res = await api.post<any>('/payment-vouchers', data);
+        return (res.data ? res.data : res) as PaymentVoucher;
     },
 
     update: async (id: number, data: Partial<Pick<PaymentVoucher, 'description' | 'paid_to'>>) => {
@@ -235,7 +245,8 @@ export const paymentVoucherService = {
             if (error) throw error;
             return result as PaymentVoucher;
         }
-        return api.put<PaymentVoucher>(`/payment-vouchers/${id}`, data);
+        const res = await api.put<any>(`/payment-vouchers/${id}`, data);
+        return (res.data ? res.data : res) as PaymentVoucher;
     },
 
     delete: async (id: number) => {
@@ -244,7 +255,8 @@ export const paymentVoucherService = {
             if (error) throw error;
             return { message: 'Voucher deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/payment-vouchers/${id}`);
+        const res = await api.delete<any>(`/payment-vouchers/${id}`);
+        return res;
     },
 };
 
@@ -279,8 +291,9 @@ export const checkService = {
             if (error) throw error;
             return data;
         }
-        const queryStr = new URLSearchParams(params as any).toString();
-        return api.get<any[]>(`/checks${queryStr ? '?' + queryStr : ''}`);
+        const queryStr = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/checks${queryStr ? '?' + queryStr : ''}`);
+        return (res.data ? res.data : res) as any[];
     },
 
     getById: async (id: number) => {
@@ -289,7 +302,8 @@ export const checkService = {
             if (error) throw error;
             return data;
         }
-        return api.get<any>(`/checks/${id}`);
+        const res = await api.get<any>(`/checks/${id}`);
+        return (res.data ? res.data : res) as any;
     },
 
     updateStatus: async (id: number, data: { status: string; notes?: string }) => {
@@ -303,7 +317,8 @@ export const checkService = {
             if (error) throw error;
             return result;
         }
-        return api.put<any>(`/checks/${id}/status`, data);
+        const res = await api.put<any>(`/checks/${id}/status`, data);
+        return (res.data ? res.data : res) as any;
     },
 
     getStats: async (params?: { start_date?: string; end_date?: string }) => {
@@ -318,8 +333,9 @@ export const checkService = {
                 by_type: { receipt: 0, payment: 0 }
             } as CheckStats;
         }
-        const query = new URLSearchParams(params as any).toString();
-        return api.get<CheckStats>(`/checks/stats/summary${query ? '?' + query : ''}`);
+        const query = params ? new URLSearchParams(params as any).toString() : '';
+        const res = await api.get<any>(`/checks/stats/summary${query ? '?' + query : ''}`);
+        return (res.data ? res.data : res) as CheckStats;
     },
 
     getDueSoon: async () => {
@@ -334,6 +350,7 @@ export const checkService = {
             if (error) throw error;
             return data;
         }
-        return api.get<any[]>('/checks/pending/due-soon');
+        const res = await api.get<any>('/checks/pending/due-soon');
+        return (res.data ? res.data : res) as any[];
     },
 };

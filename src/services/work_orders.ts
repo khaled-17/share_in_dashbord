@@ -24,7 +24,8 @@ export const workOrderService = {
             if (error) throw error;
             return data as WorkOrder[];
         }
-        return api.get<WorkOrder[]>('/work-orders');
+        const res = await api.get<any>('/work-orders');
+        return (res.data ? res.data : res) as WorkOrder[];
     },
 
     create: async (data: Partial<WorkOrder>) => {
@@ -37,7 +38,8 @@ export const workOrderService = {
             if (error) throw error;
             return result as WorkOrder;
         }
-        return api.post<WorkOrder>('/work-orders', data);
+        const res = await api.post<any>('/work-orders', data);
+        return (res.data ? res.data : res) as WorkOrder;
     },
 
     delete: async (id: number) => {
@@ -46,6 +48,7 @@ export const workOrderService = {
             if (error) throw error;
             return { message: 'Work order deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/work-orders/${id}`);
+        const res = await api.delete<any>(`/work-orders/${id}`);
+        return res;
     },
 };
