@@ -30,7 +30,8 @@ export const settingsService = {
             if (error) throw error;
             return data as ExpenseType[];
         }
-        return api.get<ExpenseType[]>('/settings/expense-types');
+        const res = await api.get<any>('/settings/expense-types');
+        return (res.data ? res.data : res) as ExpenseType[];
     },
     createExpenseType: async (data: Omit<ExpenseType, 'id'>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -38,7 +39,8 @@ export const settingsService = {
             if (error) throw error;
             return result as ExpenseType;
         }
-        return api.post<ExpenseType>('/settings/expense-types', data);
+        const res = await api.post<any>('/settings/expense-types', data);
+        return (res.data ? res.data : res) as ExpenseType;
     },
     updateExpenseType: async (id: number, data: Partial<ExpenseType>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -46,7 +48,8 @@ export const settingsService = {
             if (error) throw error;
             return result as ExpenseType;
         }
-        return api.put<ExpenseType>(`/settings/expense-types/${id}`, data);
+        const res = await api.put<any>(`/settings/expense-types/${id}`, data);
+        return (res.data ? res.data : res) as ExpenseType;
     },
     deleteExpenseType: async (id: number) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -54,7 +57,8 @@ export const settingsService = {
             if (error) throw error;
             return { message: 'Expense type deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/settings/expense-types/${id}`);
+        const res = await api.delete<any>(`/settings/expense-types/${id}`);
+        return res.data ? res.data : res;
     },
 
     // Revenue Types
@@ -64,7 +68,8 @@ export const settingsService = {
             if (error) throw error;
             return data as RevenueType[];
         }
-        return api.get<RevenueType[]>('/settings/revenue-types');
+        const res = await api.get<any>('/settings/revenue-types');
+        return (res.data ? res.data : res) as RevenueType[];
     },
     createRevenueType: async (data: Omit<RevenueType, 'id'>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -72,7 +77,8 @@ export const settingsService = {
             if (error) throw error;
             return result as RevenueType;
         }
-        return api.post<RevenueType>('/settings/revenue-types', data);
+        const res = await api.post<any>('/settings/revenue-types', data);
+        return (res.data ? res.data : res) as RevenueType;
     },
     updateRevenueType: async (id: number, data: Partial<RevenueType>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -80,7 +86,8 @@ export const settingsService = {
             if (error) throw error;
             return result as RevenueType;
         }
-        return api.put<RevenueType>(`/settings/revenue-types/${id}`, data);
+        const res = await api.put<any>(`/settings/revenue-types/${id}`, data);
+        return (res.data ? res.data : res) as RevenueType;
     },
     deleteRevenueType: async (id: number) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -88,7 +95,8 @@ export const settingsService = {
             if (error) throw error;
             return { message: 'Revenue type deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/settings/revenue-types/${id}`);
+        const res = await api.delete<any>(`/settings/revenue-types/${id}`);
+        return res.data ? res.data : res;
     },
 
     // Project Types
@@ -98,7 +106,8 @@ export const settingsService = {
             if (error) throw error;
             return data as ProjectType[];
         }
-        return api.get<ProjectType[]>('/settings/project-types');
+        const res = await api.get<any>('/settings/project-types');
+        return (res.data ? res.data : res) as ProjectType[];
     },
     createProjectType: async (data: Omit<ProjectType, 'id'>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -106,7 +115,8 @@ export const settingsService = {
             if (error) throw error;
             return result as ProjectType;
         }
-        return api.post<ProjectType>('/settings/project-types', data);
+        const res = await api.post<any>('/settings/project-types', data);
+        return (res.data ? res.data : res) as ProjectType;
     },
     updateProjectType: async (id: number, data: Partial<ProjectType>) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -114,7 +124,8 @@ export const settingsService = {
             if (error) throw error;
             return result as ProjectType;
         }
-        return api.put<ProjectType>(`/settings/project-types/${id}`, data);
+        const res = await api.put<any>(`/settings/project-types/${id}`, data);
+        return (res.data ? res.data : res) as ProjectType;
     },
     deleteProjectType: async (id: number) => {
         if (APP_CONFIG.currentSource === 'supabase') {
@@ -122,6 +133,7 @@ export const settingsService = {
             if (error) throw error;
             return { message: 'Project type deleted successfully' };
         }
-        return api.delete<{ message: string }>(`/settings/project-types/${id}`);
+        const res = await api.delete<any>(`/settings/project-types/${id}`);
+        return res.data ? res.data : res;
     },
 };
