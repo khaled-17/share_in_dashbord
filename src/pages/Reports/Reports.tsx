@@ -52,7 +52,6 @@ export const Reports: React.FC = () => {
 
       // Legacy Supabase loading logic (as a fallback)
       let openingBalance = 0;
-      let transactions: LedgerItem[] = [];
 
       const [allRevenue, allExpenses, allReceiptVouchers, allPaymentVouchers] = await Promise.all([
         financeService.getAllRevenue(),
@@ -153,6 +152,7 @@ export const Reports: React.FC = () => {
   // Initial fetch
   useEffect(() => {
     fetchReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Fetch on mount
 
   return (

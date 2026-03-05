@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-interface SidebarProps {
-  // No props needed for navigation anymore
-}
-
-export const Sidebar: React.FC<SidebarProps> = () => {
+export const Sidebar: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
@@ -227,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
             </div>
           </div>
           <div className="mt-4 text-center">
-            <p className="text-[10px] text-primary-400 font-mono opacity-50">v{__APP_VERSION__}ss</p>
+            <p className="text-[10px] text-primary-400 font-mono opacity-50">v{__APP_VERSION__} </p>
           </div>
         </div>
       )}
