@@ -4,7 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { financeService, type Revenue as RevenueModel } from "../../services/finance";
 import { customerService, type Customer } from "../../services/customers";
 import { settingsService, type RevenueType } from "../../services/settings";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Revenue: React.FC = () => {
   const [revenues, setRevenues] = useState<RevenueModel[]>([]);
@@ -25,6 +25,7 @@ export const Revenue: React.FC = () => {
     notes: ''
   });
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   // Fetch all data
   const fetchData = async () => {
@@ -373,6 +374,7 @@ export const Revenue: React.FC = () => {
                   value={formData.customer_id}
                   onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
                   options={customerOptions}
+                  onAddClick={() => navigate('/customers')}
                   required
                 />
                 <Select
@@ -380,6 +382,7 @@ export const Revenue: React.FC = () => {
                   value={formData.revtype_id}
                   onChange={(e) => setFormData({ ...formData, revtype_id: e.target.value })}
                   options={revenueTypeOptions}
+                  onAddClick={() => navigate('/settings')}
                   required
                 />
                 <Input

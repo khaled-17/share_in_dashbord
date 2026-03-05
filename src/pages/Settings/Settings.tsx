@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Table, Input } from '../../components/ui';
+import { Card, Button, Table, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { settingsService, type ExpenseType, type RevenueType, type ProjectType } from '../../services/settings';
 import { companyService, type CompanySettings } from '../../services/company';
@@ -555,15 +555,13 @@ export const Settings: React.FC = () => {
                                             required
                                         />
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <label className="text-sm font-medium text-gray-700">التقييم:</label>
-                                        <select
-                                            className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                                    <div className="md:col-span-2 lg:col-span-3">
+                                        <Select
+                                            label="التقييم:"
                                             value={reviewFormData.rating}
-                                            onChange={e => setReviewFormData({ ...reviewFormData, rating: parseInt(e.target.value) })}
-                                        >
-                                            {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{n} نجوم</option>)}
-                                        </select>
+                                            onChange={(e: any) => setReviewFormData({ ...reviewFormData, rating: parseInt(e.target.value) })}
+                                            options={[5, 4, 3, 2, 1].map(n => ({ value: n, label: `${n} نجوم` }))}
+                                        />
                                     </div>
                                 </div>
                                 <div className="flex gap-2 mt-6">

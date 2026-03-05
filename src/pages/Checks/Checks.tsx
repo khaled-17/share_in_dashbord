@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Modal } from '../../components/ui';
+import { Card, Button, Table, Modal, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { checkService, type CheckStats } from '../../services/vouchers';
 
@@ -23,7 +23,7 @@ export const Checks: React.FC = () => {
             const statsData = await checkService.getStats();
             setStats(statsData);
         } catch (err: any) {
-            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
+            toast.error(`فشل في تحميل البيانات: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +46,7 @@ export const Checks: React.FC = () => {
             setShowStatusModal(false);
             fetchChecks();
         } catch (err: any) {
-            toast.error(`فشل التحديث: ${  err.message}`, { id: loadingToast });
+            toast.error(`فشل التحديث: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -181,18 +181,18 @@ export const Checks: React.FC = () => {
             <Card>
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                     <div className="flex-1 max-w-xs">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">تصفية حسب الحالة</label>
-                        <select
+                        <Select
+                            label="تصفية حسب الحالة"
                             value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="">جميع الحالات</option>
-                            <option value="pending">قيد الانتظار</option>
-                            <option value="cleared">تم الصرف</option>
-                            <option value="bounced">مرتد</option>
-                            <option value="cancelled">ملغى</option>
-                        </select>
+                            onChange={(e: any) => setFilterStatus(e.target.value)}
+                            options={[
+                                { value: '', label: 'جميع الحالات' },
+                                { value: 'pending', label: 'قيد الانتظار' },
+                                { value: 'cleared', label: 'تم الصرف' },
+                                { value: 'bounced', label: 'مرتد' },
+                                { value: 'cancelled', label: 'ملغى' }
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -225,17 +225,17 @@ export const Checks: React.FC = () => {
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">الحالة الجديدة *</label>
-                        <select
+                        <Select
+                            label="الحالة الجديدة *"
                             value={newStatus}
-                            onChange={(e) => setNewStatus(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        >
-                            <option value="pending">قيد الانتظار</option>
-                            <option value="cleared">تم الصرف</option>
-                            <option value="bounced">مرتد</option>
-                            <option value="cancelled">ملغى</option>
-                        </select>
+                            onChange={(e: any) => setNewStatus(e.target.value)}
+                            options={[
+                                { value: 'pending', label: 'قيد الانتظار' },
+                                { value: 'cleared', label: 'تم الصرف' },
+                                { value: 'bounced', label: 'مرتد' },
+                                { value: 'cancelled', label: 'ملغى' }
+                            ]}
+                        />
                     </div>
 
                     <div>

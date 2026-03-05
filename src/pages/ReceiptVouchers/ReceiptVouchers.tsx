@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input, Drawer } from '../../components/ui';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button, Table, Input, Drawer, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { receiptVoucherService, type ReceiptVoucher } from '../../services/vouchers';
 import { customerService } from '../../services/customers';
@@ -9,6 +10,7 @@ export const ReceiptVouchers: React.FC = () => {
     const [vouchers, setVouchers] = useState<ReceiptVoucher[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showDrawer, setShowDrawer] = useState(false);
+    const navigate = useNavigate();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [partners, setPartners] = useState<any[]>([]);
@@ -52,7 +54,7 @@ export const ReceiptVouchers: React.FC = () => {
             const data = await receiptVoucherService.getAll();
             setVouchers(data || []);
         } catch (err: any) {
-            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
+            toast.error(`فشل في تحميل البيانات: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -177,7 +179,7 @@ export const ReceiptVouchers: React.FC = () => {
             toast.success('تم الحذف بنجاح', { id: loadingToast });
             fetchVouchers();
         } catch (err: any) {
-            toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
+            toast.error(`فشل الحذف: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -328,25 +330,25 @@ export const ReceiptVouchers: React.FC = () => {
                         />
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">نوع المصدر *</label>
-                            <select
+                            <Select
+                                label="نوع المصدر *"
                                 value={formData.source_type}
-                                onChange={(e) => setFormData({ ...formData, source_type: e.target.value, customer_id: '', partner_id: '' })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            >
-                                <option value="customer">عميل</option>
-                                <option value="partner_capital">زيادة رأس مال شريك</option>
-                                <option value="advance_payment">دفعة مقدمة</option>
-                                <option value="other">أخرى</option>
-                            </select>
+                                onChange={(e: any) => setFormData({ ...formData, source_type: e.target.value, customer_id: '', partner_id: '' })}
+                                options={[
+                                    { value: 'customer', label: 'عميل' },
+                                    { value: 'partner_capital', label: 'زيادة رأس مال شريك' },
+                                    { value: 'advance_payment', label: 'دفعة مقدمة' },
+                                    { value: 'other', label: 'أخرى' }
+                                ]}
+                            />
                         </div>
 
                         {formData.source_type === 'customer' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">العميل *</label>
-                                <select
+                                <Select
+                                    label="العميل *"
                                     value={formData.customer_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selectedCustomer = customers.find(c => c.customer_id === e.target.value);
                                         setFormData({
                                             ...formData,
@@ -354,23 +356,22 @@ export const ReceiptVouchers: React.FC = () => {
                                             received_from: selectedCustomer?.name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.customer_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر العميل</option>
-                                    {customers.map(c => (
-                                        <option key={c.customer_id} value={c.customer_id}>{c.name}</option>
-                                    ))}
-                                </select>
-                                {errors.customer_id && <p className="text-red-500 text-sm mt-1">{errors.customer_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر العميل' },
+                                        ...customers.map(c => ({ value: c.customer_id, label: c.name }))
+                                    ]}
+                                    onAddClick={() => navigate('/customers')}
+                                    error={errors.customer_id}
+                                />
                             </div>
                         )}
 
                         {formData.source_type === 'partner_capital' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">الشريك *</label>
-                                <select
+                                <Select
+                                    label="الشريك *"
                                     value={formData.partner_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selectedPartner = partners.find(p => p.id === parseInt(e.target.value));
                                         setFormData({
                                             ...formData,
@@ -378,14 +379,13 @@ export const ReceiptVouchers: React.FC = () => {
                                             received_from: selectedPartner?.name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.partner_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر الشريك</option>
-                                    {partners.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                                {errors.partner_id && <p className="text-red-500 text-sm mt-1">{errors.partner_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر الشريك' },
+                                        ...partners.map(p => ({ value: p.id, label: p.name }))
+                                    ]}
+                                    onAddClick={() => navigate('/partners')}
+                                    error={errors.partner_id}
+                                />
                             </div>
                         )}
 
@@ -409,16 +409,16 @@ export const ReceiptVouchers: React.FC = () => {
                         />
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">طريقة الدفع *</label>
-                            <select
+                            <Select
+                                label="طريقة الدفع *"
                                 value={formData.payment_method}
-                                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            >
-                                <option value="cash">نقدي</option>
-                                <option value="check">شيك</option>
-                                <option value="bank_transfer">تحويل بنكي</option>
-                            </select>
+                                onChange={(e: any) => setFormData({ ...formData, payment_method: e.target.value })}
+                                options={[
+                                    { value: 'cash', label: 'نقدي' },
+                                    { value: 'check', label: 'شيك' },
+                                    { value: 'bank_transfer', label: 'تحويل بنكي' }
+                                ]}
+                            />
                         </div>
 
                         {formData.payment_method === 'check' && (

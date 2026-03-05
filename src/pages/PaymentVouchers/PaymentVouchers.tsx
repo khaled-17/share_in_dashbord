@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input, Drawer } from '../../components/ui';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button, Table, Input, Drawer, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { paymentVoucherService, type PaymentVoucher } from '../../services/vouchers';
 import { supplierService } from '../../services/suppliers';
@@ -11,6 +12,7 @@ export const PaymentVouchers: React.FC = () => {
     const [vouchers, setVouchers] = useState<PaymentVoucher[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showDrawer, setShowDrawer] = useState(false);
+    const navigate = useNavigate();
 
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
@@ -58,7 +60,7 @@ export const PaymentVouchers: React.FC = () => {
             const data = await paymentVoucherService.getAll();
             setVouchers(data || []);
         } catch (err: any) {
-            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
+            toast.error(`فشل في تحميل البيانات: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -77,7 +79,7 @@ export const PaymentVouchers: React.FC = () => {
             setPartners(partnersData || []);
             setExpenseTypes(expenseTypesData || []);
         } catch (err: any) {
-            toast.error(`فشل في تحميل البيانات المساعدة: ${  err.message}`);
+            toast.error(`فشل في تحميل البيانات المساعدة: ${err.message}`);
         }
     };
 
@@ -199,7 +201,7 @@ export const PaymentVouchers: React.FC = () => {
             toast.success('تم الحذف بنجاح', { id: loadingToast });
             fetchVouchers();
         } catch (err: any) {
-            toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
+            toast.error(`فشل الحذف: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -351,10 +353,10 @@ export const PaymentVouchers: React.FC = () => {
                         />
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">نوع المستفيد *</label>
-                            <select
+                            <Select
+                                label="نوع المستفيد *"
                                 value={formData.beneficiary_type}
-                                onChange={(e) => setFormData({
+                                onChange={(e: any) => setFormData({
                                     ...formData,
                                     beneficiary_type: e.target.value,
                                     supplier_id: '',
@@ -362,22 +364,22 @@ export const PaymentVouchers: React.FC = () => {
                                     partner_id: '',
                                     expense_type_id: ''
                                 })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            >
-                                <option value="supplier">مورد</option>
-                                <option value="employee">موظف</option>
-                                <option value="partner_withdrawal">مسحوبات شريك</option>
-                                <option value="admin_expense">مصروف إداري</option>
-                                <option value="other">أخرى</option>
-                            </select>
+                                options={[
+                                    { value: 'supplier', label: 'مورد' },
+                                    { value: 'employee', label: 'موظف' },
+                                    { value: 'partner_withdrawal', label: 'مسحوبات شريك' },
+                                    { value: 'admin_expense', label: 'مصروف إداري' },
+                                    { value: 'other', label: 'أخرى' }
+                                ]}
+                            />
                         </div>
 
                         {formData.beneficiary_type === 'supplier' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">المورد *</label>
-                                <select
+                                <Select
+                                    label="المورد *"
                                     value={formData.supplier_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selected = suppliers.find(s => s.supplier_id === e.target.value);
                                         setFormData({
                                             ...formData,
@@ -385,23 +387,22 @@ export const PaymentVouchers: React.FC = () => {
                                             paid_to: selected?.name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.supplier_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر المورد</option>
-                                    {suppliers.map(s => (
-                                        <option key={s.supplier_id} value={s.supplier_id}>{s.name}</option>
-                                    ))}
-                                </select>
-                                {errors.supplier_id && <p className="text-red-500 text-sm mt-1">{errors.supplier_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر المورد' },
+                                        ...suppliers.map(s => ({ value: s.supplier_id, label: s.name }))
+                                    ]}
+                                    onAddClick={() => navigate('/suppliers')}
+                                    error={errors.supplier_id}
+                                />
                             </div>
                         )}
 
                         {formData.beneficiary_type === 'employee' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">الموظف *</label>
-                                <select
+                                <Select
+                                    label="الموظف *"
                                     value={formData.employee_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selected = employees.find(emp => emp.emp_code === e.target.value);
                                         setFormData({
                                             ...formData,
@@ -409,23 +410,22 @@ export const PaymentVouchers: React.FC = () => {
                                             paid_to: selected?.name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.employee_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر الموظف</option>
-                                    {employees.map(emp => (
-                                        <option key={emp.emp_code} value={emp.emp_code}>{emp.name}</option>
-                                    ))}
-                                </select>
-                                {errors.employee_id && <p className="text-red-500 text-sm mt-1">{errors.employee_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر الموظف' },
+                                        ...employees.map(emp => ({ value: emp.emp_code, label: emp.name }))
+                                    ]}
+                                    onAddClick={() => navigate('/employees')}
+                                    error={errors.employee_id}
+                                />
                             </div>
                         )}
 
                         {formData.beneficiary_type === 'partner_withdrawal' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">الشريك *</label>
-                                <select
+                                <Select
+                                    label="الشريك *"
                                     value={formData.partner_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selected = partners.find(p => p.id === parseInt(e.target.value));
                                         setFormData({
                                             ...formData,
@@ -433,23 +433,22 @@ export const PaymentVouchers: React.FC = () => {
                                             paid_to: selected?.name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.partner_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر الشريك</option>
-                                    {partners.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                                {errors.partner_id && <p className="text-red-500 text-sm mt-1">{errors.partner_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر الشريك' },
+                                        ...partners.map(p => ({ value: p.id, label: p.name }))
+                                    ]}
+                                    onAddClick={() => navigate('/partners')}
+                                    error={errors.partner_id}
+                                />
                             </div>
                         )}
 
                         {formData.beneficiary_type === 'admin_expense' && (
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">نوع المصروف *</label>
-                                <select
+                                <Select
+                                    label="نوع المصروف *"
                                     value={formData.expense_type_id}
-                                    onChange={(e) => {
+                                    onChange={(e: any) => {
                                         const selected = expenseTypes.find(et => et.exptype_id === e.target.value);
                                         setFormData({
                                             ...formData,
@@ -457,14 +456,13 @@ export const PaymentVouchers: React.FC = () => {
                                             paid_to: selected?.exptype_name || ''
                                         });
                                     }}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${errors.expense_type_id ? 'border-red-500' : 'border-gray-300'}`}
-                                >
-                                    <option value="">اختر نوع المصروف</option>
-                                    {expenseTypes.map(et => (
-                                        <option key={et.exptype_id} value={et.exptype_id}>{et.exptype_name}</option>
-                                    ))}
-                                </select>
-                                {errors.expense_type_id && <p className="text-red-500 text-sm mt-1">{errors.expense_type_id}</p>}
+                                    options={[
+                                        { value: '', label: 'اختر نوع المصروف' },
+                                        ...expenseTypes.map(et => ({ value: et.exptype_id, label: et.exptype_name }))
+                                    ]}
+                                    onAddClick={() => navigate('/settings')}
+                                    error={errors.expense_type_id}
+                                />
                             </div>
                         )}
 
@@ -488,16 +486,16 @@ export const PaymentVouchers: React.FC = () => {
                         />
 
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">طريقة الدفع *</label>
-                            <select
+                            <Select
+                                label="طريقة الدفع *"
                                 value={formData.payment_method}
-                                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            >
-                                <option value="cash">نقدي</option>
-                                <option value="check">شيك</option>
-                                <option value="bank_transfer">تحويل بنكي</option>
-                            </select>
+                                onChange={(e: any) => setFormData({ ...formData, payment_method: e.target.value })}
+                                options={[
+                                    { value: 'cash', label: 'نقدي' },
+                                    { value: 'check', label: 'شيك' },
+                                    { value: 'bank_transfer', label: 'تحويل بنكي' }
+                                ]}
+                            />
                         </div>
 
                         {formData.payment_method === 'check' && (

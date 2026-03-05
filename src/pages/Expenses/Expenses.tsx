@@ -4,7 +4,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { financeService, type Expense } from '../../services/finance';
 import { supplierService, type Supplier } from '../../services/suppliers';
 import { settingsService, type ExpenseType } from '../../services/settings';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -25,6 +25,7 @@ export const Expenses: React.FC = () => {
     notes: ''
   });
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   // Fetch all data
   const fetchData = async () => {
@@ -41,7 +42,7 @@ export const Expenses: React.FC = () => {
       setSuppliers(suppliersData || []);
       setExpenseTypes(typesData || []);
     } catch (err: any) {
-      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
+      toast.error(`فشل في تحميل البيانات: ${err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -133,7 +134,7 @@ export const Expenses: React.FC = () => {
       setCurrentId(null);
       await fetchData();
     } catch (err: any) {
-      toast.error(`حدث خطأ: ${  err.message || 'غير معروف'}`, { id: loadingToast });
+      toast.error(`حدث خطأ: ${err.message || 'غير معروف'}`, { id: loadingToast });
       console.error(err);
     }
   };
@@ -167,7 +168,7 @@ export const Expenses: React.FC = () => {
       toast.success('تم حذف المصروف بنجاح', { id: loadingToast });
       await fetchData();
     } catch (err: any) {
-      toast.error(`حدث خطأ أثناء الحذف: ${  err.message}`, { id: loadingToast });
+      toast.error(`حدث خطأ أثناء الحذف: ${err.message}`, { id: loadingToast });
       console.error(err);
     }
   };
@@ -373,6 +374,7 @@ export const Expenses: React.FC = () => {
                   value={formData.supplier_id}
                   onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
                   options={supplierOptions}
+                  onAddClick={() => navigate('/suppliers')}
                   required
                 />
                 <Select
@@ -380,6 +382,7 @@ export const Expenses: React.FC = () => {
                   value={formData.exptype_id}
                   onChange={(e) => setFormData({ ...formData, exptype_id: e.target.value })}
                   options={expenseTypeOptions}
+                  onAddClick={() => navigate('/settings')}
                   required
                 />
                 <Input

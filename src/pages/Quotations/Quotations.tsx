@@ -317,6 +317,7 @@ export const Quotations: React.FC = () => {
                 value={formData.customer_id}
                 onChange={e => { setFormData({ ...formData, customer_id: e.target.value }); setFormErrors({ ...formErrors, customer_id: '' }) }}
                 options={customerOptions}
+                onAddClick={() => navigate('/customers')}
                 error={formErrors.customer_id}
               />
               <Select
@@ -324,6 +325,7 @@ export const Quotations: React.FC = () => {
                 value={formData.project_type_id}
                 onChange={e => { setFormData({ ...formData, project_type_id: e.target.value }); setFormErrors({ ...formErrors, project_type_id: '' }) }}
                 options={projectTypeOptions}
+                onAddClick={() => navigate('/settings')}
                 error={formErrors.project_type_id}
               />
               <Input

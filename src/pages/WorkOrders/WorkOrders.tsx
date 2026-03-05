@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
 import { workOrderService, type WorkOrder } from '../../services/work_orders';
@@ -11,6 +12,7 @@ export const WorkOrders: React.FC = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         order_code: '',
@@ -30,7 +32,7 @@ export const WorkOrders: React.FC = () => {
             setQuotations(quotes || []);
             setCustomers(custs?.data || []);
         } catch (err: any) {
-            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
+            toast.error(`فشل في تحميل البيانات: ${err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -59,7 +61,7 @@ export const WorkOrders: React.FC = () => {
             setFormData({ order_code: '', quotation_id: '', customer_id: '' });
             await fetchData();
         } catch (err: any) {
-            toast.error(`حدث خطأ: ${  err.message}`, { id: loadingToast });
+            toast.error(`حدث خطأ: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -70,7 +72,7 @@ export const WorkOrders: React.FC = () => {
             toast.success('تم الحذف بنجاح');
             await fetchData();
         } catch (err: any) {
-            toast.error(`فشل في الحذف: ${  err.message}`);
+            toast.error(`فشل في الحذف: ${err.message}`);
         }
     };
 
@@ -136,6 +138,7 @@ export const WorkOrders: React.FC = () => {
                                 value={formData.quotation_id}
                                 onChange={(e) => setFormData({ ...formData, quotation_id: e.target.value })}
                                 options={quotationOptions}
+                                onAddClick={() => navigate('/quotations')}
                                 required
                             />
                             <Select
@@ -143,6 +146,7 @@ export const WorkOrders: React.FC = () => {
                                 value={formData.customer_id}
                                 onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
                                 options={customerOptions}
+                                onAddClick={() => navigate('/customers')}
                                 required
                             />
                         </div>
