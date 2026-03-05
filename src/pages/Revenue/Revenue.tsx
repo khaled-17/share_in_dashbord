@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { financeService } from '../../services/finance';
-import type { Revenue as RevenueModel } from '../../services/finance';
-import { customerService } from '../../services/customers';
-import type { Customer } from '../../services/customers';
-import { settingsService } from '../../services/settings';
-import type { RevenueType } from '../../services/settings';
+import { financeService, type Revenue as RevenueModel } from "../../services/finance";
+import { customerService, type Customer } from "../../services/customers";
+import { settingsService, type RevenueType } from "../../services/settings";
 import { Link } from 'react-router-dom';
 
 export const Revenue: React.FC = () => {
@@ -44,7 +41,7 @@ export const Revenue: React.FC = () => {
       setCustomers(customersData?.data || []);
       setRevenueTypes(typesData || []);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -94,7 +91,7 @@ export const Revenue: React.FC = () => {
         // Update existing revenue
         await financeService.updateRevenue(currentId, {
           rev_date: formData.rev_date,
-          amount: amount,
+          amount,
           code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
@@ -108,7 +105,7 @@ export const Revenue: React.FC = () => {
         // Insert new revenue
         await financeService.createRevenue({
           rev_date: formData.rev_date,
-          amount: amount,
+          amount,
           code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
@@ -136,7 +133,7 @@ export const Revenue: React.FC = () => {
       setCurrentId(null);
       await fetchData();
     } catch (err: any) {
-      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
+      toast.error(`حدث خطأ: ${err.message || 'غير معروف'}`, { id: loadingToast });
       console.error(err);
     }
   };
@@ -170,7 +167,7 @@ export const Revenue: React.FC = () => {
       toast.success('تم حذف الإيراد بنجاح', { id: loadingToast });
       await fetchData();
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+      toast.error(`حدث خطأ أثناء الحذف: ${err.message}`, { id: loadingToast });
       console.error(err);
     }
   };

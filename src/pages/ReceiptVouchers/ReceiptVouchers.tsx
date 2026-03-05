@@ -52,7 +52,7 @@ export const ReceiptVouchers: React.FC = () => {
             const data = await receiptVoucherService.getAll();
             setVouchers(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات: ' + err.message);
+            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -177,7 +177,7 @@ export const ReceiptVouchers: React.FC = () => {
             toast.success('تم الحذف بنجاح', { id: loadingToast });
             fetchVouchers();
         } catch (err: any) {
-            toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+            toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
         }
     };
 

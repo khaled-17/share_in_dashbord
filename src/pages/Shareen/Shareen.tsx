@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { shareenService } from '../../services/shareen';
-import type { ShareenItem } from '../../services/shareen';
+import { shareenService, type ShareenItem } from '../../services/shareen';
 
 export const Shareen: React.FC = () => {
   const [items, setItems] = useState<ShareenItem[]>([]);
@@ -15,7 +14,7 @@ export const Shareen: React.FC = () => {
       const data = await shareenService.getAll();
       setItems(data || []);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);

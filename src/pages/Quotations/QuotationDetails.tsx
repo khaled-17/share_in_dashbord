@@ -45,7 +45,7 @@ export const QuotationDetails: React.FC = () => {
                 project_type: data.project_type?.type_name || data.project_type_id
             });
         } catch (err: any) {
-            toast.error('فشل في تحميل تفاصيل عرض السعر: ' + err.message);
+            toast.error(`فشل في تحميل تفاصيل عرض السعر: ${  err.message}`);
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -71,7 +71,7 @@ export const QuotationDetails: React.FC = () => {
             toast.success('تم حذف عرض السعر بنجاح', { id: loadingToast });
             navigate('/quotations');
         } catch (err: any) {
-            toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+            toast.error(`حدث خطأ أثناء الحذف: ${  err.message}`, { id: loadingToast });
         }
     };
 
@@ -84,7 +84,7 @@ export const QuotationDetails: React.FC = () => {
             toast.success('تم تحديث الحالة بنجاح', { id: loadingToast });
             await fetchQuotationDetails();
         } catch (err: any) {
-            toast.error('فشل في تحديث الحالة: ' + err.message, { id: loadingToast });
+            toast.error(`فشل في تحديث الحالة: ${  err.message}`, { id: loadingToast });
         }
     };
 

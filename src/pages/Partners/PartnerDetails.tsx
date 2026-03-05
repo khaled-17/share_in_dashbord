@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Modal, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { partnerService } from '../../services/partners';
-import type { Partner, PartnerSummary } from '../../services/partners';
+import { partnerService, type Partner, type PartnerSummary } from '../../services/partners';
 
 export const PartnerDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -32,7 +31,7 @@ export const PartnerDetails: React.FC = () => {
             setSummary(s);
             setFormData({ name: p.name, phone: p.phone ?? '', email: p.email ?? '' });
         } catch (err: any) {
-            toast.error('فشل في تحميل بيانات الشريك: ' + err.message);
+            toast.error(`فشل في تحميل بيانات الشريك: ${err.message}`);
         } finally {
             setIsLoading(false);
         }

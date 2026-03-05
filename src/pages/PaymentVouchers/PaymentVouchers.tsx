@@ -58,7 +58,7 @@ export const PaymentVouchers: React.FC = () => {
             const data = await paymentVoucherService.getAll();
             setVouchers(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات: ' + err.message);
+            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -77,7 +77,7 @@ export const PaymentVouchers: React.FC = () => {
             setPartners(partnersData || []);
             setExpenseTypes(expenseTypesData || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات المساعدة: ' + err.message);
+            toast.error(`فشل في تحميل البيانات المساعدة: ${  err.message}`);
         }
     };
 
@@ -199,7 +199,7 @@ export const PaymentVouchers: React.FC = () => {
             toast.success('تم الحذف بنجاح', { id: loadingToast });
             fetchVouchers();
         } catch (err: any) {
-            toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+            toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
         }
     };
 

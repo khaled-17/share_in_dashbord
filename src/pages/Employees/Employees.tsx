@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { employeeService } from '../../services/employees';
-import type { Employee } from '../../services/employees';
+import { employeeService, type Employee } from '../../services/employees';
 
 export const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -35,7 +34,7 @@ export const Employees: React.FC = () => {
     // Find the maximum code and increment
     const maxCode = Math.max(...validCodes);
     const nextNum = maxCode + 1;
-    return 'E' + nextNum.toString().padStart(3, '0');
+    return `E${  nextNum.toString().padStart(3, '0')}`;
   };
 
   // Fetch employees from API
@@ -45,7 +44,7 @@ export const Employees: React.FC = () => {
       const data = await employeeService.getAll();
       setEmployees(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       setEmployees([]);
       console.error(err);
     } finally {
@@ -94,7 +93,7 @@ export const Employees: React.FC = () => {
           emp_code: formData.emp_code.trim(),
           name: formData.name,
           phone: formData.phone || null,
-          salary: salary,
+          salary,
         });
 
         toast.success('تم تحديث بيانات الموظف بنجاح', { id: loadingToast });
@@ -104,7 +103,7 @@ export const Employees: React.FC = () => {
           emp_code: formData.emp_code.trim(),
           name: formData.name,
           phone: formData.phone || null,
-          salary: salary,
+          salary,
         });
 
         toast.success('تم إضافة الموظف بنجاح', { id: loadingToast });
@@ -117,7 +116,7 @@ export const Employees: React.FC = () => {
       setCurrentId(null);
       await fetchEmployees();
     } catch (err: any) {
-      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
+      toast.error(`حدث خطأ: ${  err.message || 'غير معروف'}`, { id: loadingToast });
       console.error(err);
     }
   };
@@ -147,7 +146,7 @@ export const Employees: React.FC = () => {
       toast.success('تم حذف الموظف بنجاح', { id: loadingToast });
       await fetchEmployees();
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+      toast.error(`حدث خطأ أثناء الحذف: ${  err.message}`, { id: loadingToast });
       console.error(err);
     }
   };

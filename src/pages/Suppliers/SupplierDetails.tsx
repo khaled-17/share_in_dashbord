@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Modal, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { supplierService } from '../../services/suppliers';
-import type { Supplier } from '../../services/suppliers';
-import type { Expense } from '../../services/finance';
+import { supplierService, type Supplier } from '../../services/suppliers';
+import { type Expense } from '../../services/finance';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -48,7 +47,7 @@ export const SupplierDetails: React.FC = () => {
         speciality: data.speciality || '',
       });
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + (err.response?.data?.error || err.message));
+      toast.error(`فشل في تحميل البيانات: ${  err.response?.data?.error || err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);

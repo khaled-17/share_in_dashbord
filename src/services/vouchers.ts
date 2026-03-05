@@ -87,7 +87,7 @@ export const receiptVoucherService = {
             return data as ReceiptVoucher[];
         }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/receipt-vouchers${queryStr ? '?' + queryStr : ''}`);
+        const res = await api.get<any>(`/receipt-vouchers${queryStr ? `?${  queryStr}` : ''}`);
         return (res.data ? res.data : res) as ReceiptVoucher[];
     },
 
@@ -119,7 +119,7 @@ export const receiptVoucherService = {
             } as VoucherStats;
         }
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/receipt-vouchers/stats/summary${query ? '?' + query : ''}`);
+        const res = await api.get<any>(`/receipt-vouchers/stats/summary${query ? `?${  query}` : ''}`);
         return (res.data ? res.data : res) as VoucherStats;
     },
 
@@ -185,7 +185,7 @@ export const paymentVoucherService = {
             return data as PaymentVoucher[];
         }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/payment-vouchers${queryStr ? '?' + queryStr : ''}`);
+        const res = await api.get<any>(`/payment-vouchers${queryStr ? `?${  queryStr}` : ''}`);
         return (res.data ? res.data : res) as PaymentVoucher[];
     },
 
@@ -216,7 +216,7 @@ export const paymentVoucherService = {
             } as VoucherStats;
         }
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/payment-vouchers/stats/summary${query ? '?' + query : ''}`);
+        const res = await api.get<any>(`/payment-vouchers/stats/summary${query ? `?${  query}` : ''}`);
         return (res.data ? res.data : res) as VoucherStats;
     },
 
@@ -292,7 +292,7 @@ export const checkService = {
             return data;
         }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/checks${queryStr ? '?' + queryStr : ''}`);
+        const res = await api.get<any>(`/checks${queryStr ? `?${  queryStr}` : ''}`);
         return (res.data ? res.data : res) as any[];
     },
 
@@ -334,7 +334,7 @@ export const checkService = {
             } as CheckStats;
         }
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/checks/stats/summary${query ? '?' + query : ''}`);
+        const res = await api.get<any>(`/checks/stats/summary${query ? `?${  query}` : ''}`);
         return (res.data ? res.data : res) as CheckStats;
     },
 

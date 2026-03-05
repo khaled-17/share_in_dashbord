@@ -142,7 +142,7 @@ export const Reports: React.FC = () => {
       });
 
     } catch (err: any) {
-      toast.error('فشل في تحميل التقرير: ' + err.message);
+      toast.error(`فشل في تحميل التقرير: ${  err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -335,8 +335,8 @@ export const Reports: React.FC = () => {
                 ['الإجمالي', '', totals.debit, totals.credit, totals.balance]
               ];
 
-              const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-                + csvData.map(e => e.join(",")).join("\n");
+              const csvContent = `data:text/csv;charset=utf-8,\uFEFF${
+                 csvData.map(e => e.join(",")).join("\n")}`;
 
               const encodedUri = encodeURI(csvContent);
               const link = document.createElement("a");

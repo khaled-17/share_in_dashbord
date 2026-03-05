@@ -69,7 +69,7 @@ export const Vouchers: React.FC = () => {
       setPaymentVouchers(payments);
       setReceiptVouchers(receipts);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);

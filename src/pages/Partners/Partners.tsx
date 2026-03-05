@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Modal, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { partnerService } from '../../services/partners';
-import type { Partner } from '../../services/partners';
+import { partnerService, type Partner } from '../../services/partners';
 import { useNavigate } from 'react-router-dom';
 
 export const Partners: React.FC = () => {
@@ -31,7 +30,7 @@ export const Partners: React.FC = () => {
             .filter(num => !isNaN(num));
         if (validCodes.length === 0) return 'P001';
         const maxCode = Math.max(...validCodes);
-        return 'P' + (maxCode + 1).toString().padStart(3, '0');
+        return `P${  (maxCode + 1).toString().padStart(3, '0')}`;
     };
 
     const fetchPartners = async () => {
@@ -40,7 +39,7 @@ export const Partners: React.FC = () => {
             const data = await partnerService.getAll();
             setPartners(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات: ' + err.message);
+            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -122,7 +121,7 @@ export const Partners: React.FC = () => {
             toast.success('تم الحذف بنجاح', { id: loadingToast });
             fetchPartners();
         } catch (err: any) {
-            toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+            toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
         }
     };
 

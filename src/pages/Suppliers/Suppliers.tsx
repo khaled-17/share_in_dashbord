@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Table, Input, Modal } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { supplierService } from '../../services/suppliers';
-import type { Supplier } from '../../services/suppliers';
+import { supplierService, type Supplier } from '../../services/suppliers';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const Suppliers: React.FC = () => {
@@ -48,7 +47,7 @@ export const Suppliers: React.FC = () => {
       .filter(num => !isNaN(num));
     if (validIds.length === 0) return 'S001';
     const maxId = Math.max(...validIds);
-    return 'S' + (maxId + 1).toString().padStart(3, '0');
+    return `S${  (maxId + 1).toString().padStart(3, '0')}`;
   };
 
   const fetchSuppliers = async () => {
@@ -57,7 +56,7 @@ export const Suppliers: React.FC = () => {
       const data = await supplierService.getAll();
       setSuppliers(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       setSuppliers([]);
     } finally {
       setIsLoading(false);
@@ -150,7 +149,7 @@ export const Suppliers: React.FC = () => {
       toast.success('تم الحذف بنجاح', { id: loadingToast });
       fetchSuppliers();
     } catch (err: any) {
-      toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+      toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
     }
   };
 

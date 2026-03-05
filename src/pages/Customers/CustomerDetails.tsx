@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Modal, Input } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { customerService } from '../../services/customers';
-import type { Customer } from '../../services/customers';
-import type { Revenue } from '../../services/finance';
-import type { Quotation } from '../../services/quotations';
-import type { WorkOrder } from '../../services/work_orders';
+import { customerService, type Customer } from '../../services/customers';
+import { type Revenue } from '../../services/finance';
+import { type Quotation } from '../../services/quotations';
+import { type WorkOrder } from '../../services/work_orders';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -61,7 +60,7 @@ export const CustomerDetails: React.FC = () => {
         address: data.address || '',
       });
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + (err.response?.data?.error || err.message));
+      toast.error(`فشل في تحميل البيانات: ${  err.response?.data?.error || err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);

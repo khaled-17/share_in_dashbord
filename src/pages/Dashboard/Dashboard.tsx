@@ -134,7 +134,7 @@ export const Dashboard: React.FC = () => {
       setRecentTransactions(transactions.slice(0, 5));
 
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);

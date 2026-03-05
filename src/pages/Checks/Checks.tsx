@@ -23,7 +23,7 @@ export const Checks: React.FC = () => {
             const statsData = await checkService.getStats();
             setStats(statsData);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات: ' + err.message);
+            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +46,7 @@ export const Checks: React.FC = () => {
             setShowStatusModal(false);
             fetchChecks();
         } catch (err: any) {
-            toast.error('فشل التحديث: ' + err.message, { id: loadingToast });
+            toast.error(`فشل التحديث: ${  err.message}`, { id: loadingToast });
         }
     };
 

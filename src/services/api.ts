@@ -59,7 +59,7 @@ const request = async <T>(endpoint: string, options: RequestInit = {}): Promise<
     const url = `${API_BASE_URL}${endpoint}`;
     const headers = { ...getHeaders(), ...options.headers };
 
-    let response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
 
     if (response.status === 401 && !endpoint.includes('/auth/refresh')) {
         if (!isRefreshing) {

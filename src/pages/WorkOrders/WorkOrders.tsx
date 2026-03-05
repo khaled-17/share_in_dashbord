@@ -30,7 +30,7 @@ export const WorkOrders: React.FC = () => {
             setQuotations(quotes || []);
             setCustomers(custs?.data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل البيانات: ' + err.message);
+            toast.error(`فشل في تحميل البيانات: ${  err.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -59,7 +59,7 @@ export const WorkOrders: React.FC = () => {
             setFormData({ order_code: '', quotation_id: '', customer_id: '' });
             await fetchData();
         } catch (err: any) {
-            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            toast.error(`حدث خطأ: ${  err.message}`, { id: loadingToast });
         }
     };
 
@@ -70,7 +70,7 @@ export const WorkOrders: React.FC = () => {
             toast.success('تم الحذف بنجاح');
             await fetchData();
         } catch (err: any) {
-            toast.error('فشل في الحذف: ' + err.message);
+            toast.error(`فشل في الحذف: ${  err.message}`);
         }
     };
 

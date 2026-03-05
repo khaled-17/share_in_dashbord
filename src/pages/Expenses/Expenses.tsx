@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Table, Input, Select } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { financeService } from '../../services/finance';
-import type { Expense } from '../../services/finance';
-import { supplierService } from '../../services/suppliers';
-import type { Supplier } from '../../services/suppliers';
-import { settingsService } from '../../services/settings';
-import type { ExpenseType } from '../../services/settings';
+import { financeService, type Expense } from '../../services/finance';
+import { supplierService, type Supplier } from '../../services/suppliers';
+import { settingsService, type ExpenseType } from '../../services/settings';
 import { Link } from 'react-router-dom';
 
 export const Expenses: React.FC = () => {
@@ -44,7 +41,7 @@ export const Expenses: React.FC = () => {
       setSuppliers(suppliersData || []);
       setExpenseTypes(typesData || []);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -94,7 +91,7 @@ export const Expenses: React.FC = () => {
         // Update existing expense
         await financeService.updateExpense(currentId, {
           exp_date: formData.exp_date,
-          amount: amount,
+          amount,
           code: formData.code || undefined, // Send if edited
           receipt_no: formData.receipt_no || null,
           supplier_id: formData.supplier_id,
@@ -108,7 +105,7 @@ export const Expenses: React.FC = () => {
         // Insert new expense
         await financeService.createExpense({
           exp_date: formData.exp_date,
-          amount: amount,
+          amount,
           code: formData.code || undefined, // Send if manually entered
           receipt_no: formData.receipt_no || null,
           supplier_id: formData.supplier_id,
@@ -136,7 +133,7 @@ export const Expenses: React.FC = () => {
       setCurrentId(null);
       await fetchData();
     } catch (err: any) {
-      toast.error('حدث خطأ: ' + (err.message || 'غير معروف'), { id: loadingToast });
+      toast.error(`حدث خطأ: ${  err.message || 'غير معروف'}`, { id: loadingToast });
       console.error(err);
     }
   };
@@ -170,7 +167,7 @@ export const Expenses: React.FC = () => {
       toast.success('تم حذف المصروف بنجاح', { id: loadingToast });
       await fetchData();
     } catch (err: any) {
-      toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+      toast.error(`حدث خطأ أثناء الحذف: ${  err.message}`, { id: loadingToast });
       console.error(err);
     }
   };

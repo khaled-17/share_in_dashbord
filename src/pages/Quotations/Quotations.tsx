@@ -96,7 +96,8 @@ export const Quotations: React.FC = () => {
 
       setQuotations(transformed);
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${err.message}`);
+      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +146,7 @@ export const Quotations: React.FC = () => {
       handleCancel();
       fetchData();
     } catch (err: any) {
-      toast.error('خطأ: ' + err.message, { id: loadingToast });
+      toast.error(`خطأ: ${err.message}`, { id: loadingToast });
     }
   };
 
@@ -186,7 +187,9 @@ export const Quotations: React.FC = () => {
       await quotationService.delete(id);
       toast.success('تم الحذف بنجاح');
       fetchData();
-    } catch (e) { }
+    } catch (e) {
+      console.error('Error deleting quotation:', e);
+    }
   };
 
   const handleCancel = () => {

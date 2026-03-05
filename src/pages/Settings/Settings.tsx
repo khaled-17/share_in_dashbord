@@ -12,8 +12,8 @@ export const Settings: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('expense');
 
     // Company Settings State
-    const [companyInfo, setCompanyInfo] = useState<CompanySettings | null>(null);
-    const [companyLoading, setCompanyLoading] = useState(false);
+    const [_companyInfo, setCompanyInfo] = useState<CompanySettings | null>(null);
+    const [_companyLoading, setCompanyLoading] = useState(false);
     const [companyFormData, setCompanyFormData] = useState({
         name: '',
         description: '',
@@ -87,7 +87,7 @@ export const Settings: React.FC = () => {
             const data = await reviewsService.getAll();
             setReviews(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل المراجعات: ' + err.message);
+            toast.error(`فشل في تحميل المراجعات: ${err.message}`);
         } finally {
             setReviewsLoading(false);
         }
@@ -103,11 +103,11 @@ export const Settings: React.FC = () => {
             fetchReviews();
             toast.success('تمت إضافة المراجعة بنجاح', { id: loadingToast });
         } catch (err: any) {
-            toast.error('فشل الإضافة: ' + err.message, { id: loadingToast });
+            toast.error(`فشل الإضافة: ${err.message}`, { id: loadingToast });
         }
     };
 
-    console.log(companyInfo, companyLoading);
+    // console.log(companyInfo, companyLoading);
 
 
     const fetchCompanyInfo = async () => {
@@ -141,7 +141,7 @@ export const Settings: React.FC = () => {
             toast.success('تم تحديث بيانات الشركة بنجاح', { id: loadingToast });
             fetchCompanyInfo();
         } catch (err: any) {
-            toast.error('فشل التحديث: ' + err.message, { id: loadingToast });
+            toast.error(`فشل التحديث: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -160,7 +160,7 @@ export const Settings: React.FC = () => {
         if (validIds.length === 0) return 'PRJ001';
         const maxId = Math.max(...validIds);
         const nextNum = maxId + 1;
-        return 'PRJ' + nextNum.toString().padStart(3, '0');
+        return `PRJ${nextNum.toString().padStart(3, '0')}`;
     };
 
     const fetchProjectTypes = async () => {
@@ -169,7 +169,7 @@ export const Settings: React.FC = () => {
             const data = await settingsService.getProjectTypes();
             setProjectTypes(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل أنواع المشاريع: ' + err.message);
+            toast.error(`فشل في تحميل أنواع المشاريع: ${err.message}`);
         } finally {
             setProjectLoading(false);
         }
@@ -201,7 +201,7 @@ export const Settings: React.FC = () => {
             handleProjectCancel();
             await fetchProjectTypes();
         } catch (err: any) {
-            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            toast.error(`حدث خطأ: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -223,7 +223,7 @@ export const Settings: React.FC = () => {
             toast.success('تم حذف نوع المشروع بنجاح', { id: loadingToast });
             await fetchProjectTypes();
         } catch (err: any) {
-            toast.error('حدث خطأ أثناء الحذف: ' + err.message, { id: loadingToast });
+            toast.error(`حدث خطأ أثناء الحذف: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -241,7 +241,7 @@ export const Settings: React.FC = () => {
             const data = await settingsService.getExpenseTypes();
             setExpenseTypes(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل أنواع المصروفات: ' + err.message);
+            toast.error(`فشل في تحميل أنواع المصروفات: ${err.message}`);
         } finally {
             setExpenseLoading(false);
         }
@@ -272,7 +272,7 @@ export const Settings: React.FC = () => {
             handleExpenseCancel();
             await fetchExpenseTypes();
         } catch (err: any) {
-            toast.error('حدث خطأ: ' + err.message, { id: loadingToast });
+            toast.error(`حدث خطأ: ${err.message}`, { id: loadingToast });
         }
     };
 
@@ -292,7 +292,9 @@ export const Settings: React.FC = () => {
 
     const handleExpenseDelete = async (id: number) => {
         if (!confirm('هل أنت متأكد؟')) return;
-        try { await settingsService.deleteExpenseType(id); fetchExpenseTypes(); } catch (e) { }
+        try { await settingsService.deleteExpenseType(id); fetchExpenseTypes(); } catch (e) {
+            console.error('Error deleting expense type:', e);
+        }
     };
 
     // ========== REVENUE TYPES FUNCTIONS ==========
@@ -302,7 +304,7 @@ export const Settings: React.FC = () => {
             const data = await settingsService.getRevenueTypes();
             setRevenueTypes(data || []);
         } catch (err: any) {
-            toast.error('فشل في تحميل أنواع الإيرادات: ' + err.message);
+            toast.error(`فشل في تحميل أنواع الإيرادات: ${err.message}`);
         } finally {
             setRevenueLoading(false);
         }

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Table, Input, Modal } from '../../components/ui';
 import toast, { Toaster } from 'react-hot-toast';
-import { customerService } from '../../services/customers';
-import type { Customer } from '../../services/customers';
+import { customerService, type Customer } from '../../services/customers';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const Customers: React.FC = () => {
@@ -47,7 +46,7 @@ export const Customers: React.FC = () => {
       .filter(num => !isNaN(num));
     if (validIds.length === 0) return 'C00001';
     const maxId = Math.max(...validIds);
-    return 'C' + (maxId + 1).toString().padStart(5, '0');
+    return `C${  (maxId + 1).toString().padStart(5, '0')}`;
   };
 
   const fetchCustomers = useCallback(async () => {
@@ -61,7 +60,7 @@ export const Customers: React.FC = () => {
         setTotal(res.data?.length || 0);
       }
     } catch (err: any) {
-      toast.error('فشل في تحميل البيانات: ' + err.message);
+      toast.error(`فشل في تحميل البيانات: ${  err.message}`);
       setCustomers([]);
       setTotal(0);
     } finally {
@@ -149,7 +148,7 @@ export const Customers: React.FC = () => {
       toast.success('تم الحذف بنجاح', { id: loadingToast });
       fetchCustomers();
     } catch (err: any) {
-      toast.error('فشل الحذف: ' + err.message, { id: loadingToast });
+      toast.error(`فشل الحذف: ${  err.message}`, { id: loadingToast });
     }
   };
 
