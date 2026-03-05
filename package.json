@@ -1,7 +1,7 @@
 {
   "name": "share-in-app",
   "private": true,
-  "version": "1.0.14",
+  "version": "1.0.15",
   "type": "module",
   "scripts": {
     "dev:frontend": "vite",
@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "deploy": "npm run build && npm run lint && VER=$(npm version patch --no-git-tag-version) && git add . && git commit -m \"$VER --- $(date +'%d-%m-%y')\" && git tag $VER && git push origin main && git push --tags",
+    "deploy": "npm run lint && VER=$(npm version patch --no-git-tag-version) && npm run build && git add . && git commit -m \"$VER --- $(date +'%d-%m-%y')\" && git tag $VER && git push origin main && git push --tags",
     "release": "npm run deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate": "npx prisma migrate dev",
