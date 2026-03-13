@@ -78,7 +78,7 @@ export const ReceiptVouchers: React.FC = () => {
       ]);
       setCustomers(customersData?.data || []);
       setPartners(partnersData || []);
-    } catch (err: any) {
+    } catch {
       toast.error("فشل في تحميل البيانات المساعدة");
     }
   };

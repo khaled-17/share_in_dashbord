@@ -191,7 +191,7 @@ export const Quotations: React.FC = () => {
       });
       setShowForm(true);
       setFormErrors({});
-    } catch (err: any) {
+    } catch {
       toast.error("فشل في التحميل");
     }
   };

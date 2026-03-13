@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -13,19 +13,23 @@ export const Select: React.FC<SelectProps> = ({
   error,
   options,
   fullWidth = false,
-  className = '',
+  className = "",
   id,
   onAddClick,
   onChange,
   ...props
 }) => {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  const currentValue = props.value?.toString() ?? "";
+  const hasEmptyOption = options.some(
+    (option) => option.value.toString() === "",
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (e.target.value === 'ADD_NEW' && onAddClick) {
+    if (e.target.value === "ADD_NEW" && onAddClick) {
       onAddClick();
       // Reset the selection to prevent it from staying on "ADD_NEW"
-      e.target.value = props.value?.toString() || '';
+      e.target.value = currentValue;
       return;
     }
     if (onChange) {
@@ -33,12 +37,16 @@ export const Select: React.FC<SelectProps> = ({
     }
   };
 
-  const finalOptions = onAddClick
-    ? [{ value: 'ADD_NEW', label: '➕ إضافة جديد' }, ...options]
-    : options;
+  const finalOptions = [
+    ...(currentValue === "" && !hasEmptyOption
+      ? [{ value: "", label: "اختر من القائمة" }]
+      : []),
+    ...options,
+    ...(onAddClick ? [{ value: "ADD_NEW", label: "➕ إضافة جديد" }] : []),
+  ];
 
   return (
-    <div className={`${fullWidth ? 'w-full' : ''}`}>
+    <div className={`${fullWidth ? "w-full" : ""}`}>
       {label && (
         <label htmlFor={selectId} className="label">
           {label}
@@ -46,7 +54,7 @@ export const Select: React.FC<SelectProps> = ({
       )}
       <select
         id={selectId}
-        className={`input-field ${error ? 'border-red-500 focus:ring-red-500' : ''} ${className}`}
+        className={`input-field ${error ? "border-red-500 focus:ring-red-500" : ""} ${className}`}
         onChange={handleChange}
         {...props}
       >
@@ -56,9 +64,7 @@ export const Select: React.FC<SelectProps> = ({
           </option>
         ))}
       </select>
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>
   );
 };
