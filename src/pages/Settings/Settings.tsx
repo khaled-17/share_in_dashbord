@@ -161,20 +161,6 @@ export const Settings: React.FC = () => {
     fetchData();
   }, []);
 
-  // ========== PROJECT TYPES FUNCTIONS ==========
-  const generateNextProjectId = () => {
-    if (projectTypes.length === 0) return "PRJ001";
-    const validIds = projectTypes
-      .map((p) => p.type_id)
-      .filter((id) => /^PRJ\d+$/.test(id))
-      .map((id) => parseInt(id.substring(3)))
-      .filter((num) => !isNaN(num));
-    if (validIds.length === 0) return "PRJ001";
-    const maxId = Math.max(...validIds);
-    const nextNum = maxId + 1;
-    return `PRJ${nextNum.toString().padStart(3, "0")}`;
-  };
-
   const fetchProjectTypes = async () => {
     try {
       setProjectLoading(true);
@@ -189,8 +175,8 @@ export const Settings: React.FC = () => {
 
   const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectFormData.type_id.trim() || !projectFormData.type_name.trim()) {
-      toast.error("كود النوع والاسم مطلوبان");
+    if (!projectFormData.type_name.trim()) {
+      toast.error("اسم النوع مطلوب");
       return;
     }
 
@@ -206,7 +192,6 @@ export const Settings: React.FC = () => {
         toast.success("تم تحديث نوع المشروع بنجاح", { id: loadingToast });
       } else {
         await settingsService.createProjectType({
-          type_id: projectFormData.type_id.trim(),
           type_name: projectFormData.type_name,
         });
         toast.success("تم إضافة نوع المشروع بنجاح", { id: loadingToast });
@@ -263,11 +248,8 @@ export const Settings: React.FC = () => {
 
   const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !expenseFormData.exptype_id.trim() ||
-      !expenseFormData.exptype_name.trim()
-    ) {
-      toast.error("كود النوع والاسم مطلوبان");
+    if (!expenseFormData.exptype_name.trim()) {
+      toast.error("اسم النوع مطلوب");
       return;
     }
     const loadingToast = toast.loading(
@@ -282,7 +264,6 @@ export const Settings: React.FC = () => {
         toast.success("تم تحديث نوع المصروف بنجاح", { id: loadingToast });
       } else {
         await settingsService.createExpenseType({
-          exptype_id: expenseFormData.exptype_id.trim(),
           exptype_name: expenseFormData.exptype_name,
           category: expenseFormData.category || null,
         });
@@ -338,15 +319,22 @@ export const Settings: React.FC = () => {
 
   const handleRevenueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!revenueFormData.revtype_name.trim()) {
+      toast.error("اسم النوع مطلوب");
+      return;
+    }
     const loadingToast = toast.loading("جاري الحفظ...");
     try {
       if (revenueEditing && revenueCurrentId) {
-        await settingsService.updateRevenueType(
-          revenueCurrentId,
-          revenueFormData,
-        );
+        await settingsService.updateRevenueType(revenueCurrentId, {
+          revtype_name: revenueFormData.revtype_name,
+          paymethod: revenueFormData.paymethod,
+        });
       } else {
-        await settingsService.createRevenueType(revenueFormData);
+        await settingsService.createRevenueType({
+          revtype_name: revenueFormData.revtype_name,
+          paymethod: revenueFormData.paymethod,
+        });
       }
       handleRevenueCancel();
       fetchRevenueTypes();
@@ -500,7 +488,7 @@ export const Settings: React.FC = () => {
                   if (!projectShowForm) {
                     setProjectShowForm(true);
                     setProjectFormData({
-                      type_id: generateNextProjectId(),
+                      type_id: "",
                       type_name: "",
                     });
                   } else setProjectShowForm(false);
@@ -634,16 +622,14 @@ export const Settings: React.FC = () => {
                 className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4"
               >
                 <Input
-                  label="كود النوع *"
-                  value={projectFormData.type_id}
-                  onChange={(e) =>
-                    setProjectFormData({
-                      ...projectFormData,
-                      type_id: e.target.value,
-                    })
+                  label="كود النوع"
+                  value={
+                    projectEditing
+                      ? projectFormData.type_id
+                      : "سيتم التوليد تلقائياً"
                   }
-                  disabled={projectEditing}
-                  required
+                  disabled
+                  helperText="يتم إنشاء الكود تلقائياً من الباك إند"
                 />
                 <Input
                   label="اسم النوع *"
@@ -686,16 +672,14 @@ export const Settings: React.FC = () => {
                 className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4"
               >
                 <Input
-                  label="كود النوع *"
-                  value={expenseFormData.exptype_id}
-                  onChange={(e) =>
-                    setExpenseFormData({
-                      ...expenseFormData,
-                      exptype_id: e.target.value,
-                    })
+                  label="كود النوع"
+                  value={
+                    expenseEditing
+                      ? expenseFormData.exptype_id
+                      : "سيتم التوليد تلقائياً"
                   }
-                  disabled={expenseEditing}
-                  required
+                  disabled
+                  helperText="يتم إنشاء الكود تلقائياً من الباك إند"
                 />
                 <Input
                   label="اسم النوع *"
@@ -738,16 +722,14 @@ export const Settings: React.FC = () => {
                 className="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-3 gap-4"
               >
                 <Input
-                  label="كود النوع *"
-                  value={revenueFormData.revtype_id}
-                  onChange={(e) =>
-                    setRevenueFormData({
-                      ...revenueFormData,
-                      revtype_id: e.target.value,
-                    })
+                  label="كود النوع"
+                  value={
+                    revenueEditing
+                      ? revenueFormData.revtype_id
+                      : "سيتم التوليد تلقائياً"
                   }
-                  disabled={revenueEditing}
-                  required
+                  disabled
+                  helperText="يتم إنشاء الكود تلقائياً من الباك إند"
                 />
                 <Input
                   label="اسم النوع *"

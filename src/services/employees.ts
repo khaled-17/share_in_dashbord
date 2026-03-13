@@ -1,30 +1,30 @@
-import { api } from './api';
+import { api } from "./api";
 export interface Employee {
-    id: number;
-    emp_code: string;
-    name: string;
-    phone?: string | null;
-    position?: string | null;
-    salary?: number | null;
-    start_date?: string | null;
+  id: number;
+  emp_code: string;
+  name: string;
+  phone?: string | null;
+  position?: string | null;
+  salary?: number | null;
+  start_date?: string | null;
 }
 export const employeeService = {
-    getAll: async () => {
-        const res = await api.get<any>('/employees');
-        return (res.data ? res.data : res) as Employee[];
-    },
-    create: async (data: Omit<Employee, 'id'>) => {
-        const res = await api.post<any>('/employees', data);
-        return (res.data ? res.data : res) as Employee;
-    },
-    update: async (id: number, data: Partial<Employee>) => {
-        const res = await api.put<any>(`/employees/${id}`, data);
-        return (res.data ? res.data : res) as Employee;
-    },
-    delete: async (id: number) => {
-        const res = await api.delete<{
-            message: string;
-        }>(`/employees/${id}`);
-        return res;
-    },
+  getAll: async () => {
+    const res = await api.get<any>("/employees");
+    return (res.data ? res.data : res) as Employee[];
+  },
+  create: async (data: Omit<Employee, "id" | "emp_code">) => {
+    const res = await api.post<any>("/employees", data);
+    return (res.data ? res.data : res) as Employee;
+  },
+  update: async (id: number, data: Partial<Employee>) => {
+    const res = await api.put<any>(`/employees/${id}`, data);
+    return (res.data ? res.data : res) as Employee;
+  },
+  delete: async (id: number) => {
+    const res = await api.delete<{
+      message: string;
+    }>(`/employees/${id}`);
+    return res;
+  },
 };

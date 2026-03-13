@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Input, Select } from '../../components/ui';
-import toast, { Toaster } from 'react-hot-toast';
-import { financeService, type Revenue as RevenueModel } from "../../services/finance";
+import React, { useState, useEffect } from "react";
+import { Card, Button, Table, Input, Select } from "../../components/ui";
+import toast, { Toaster } from "react-hot-toast";
+import {
+  financeService,
+  type Revenue as RevenueModel,
+} from "../../services/finance";
 import { customerService, type Customer } from "../../services/customers";
 import { settingsService, type RevenueType } from "../../services/settings";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
 
 export const Revenue: React.FC = () => {
   const [revenues, setRevenues] = useState<RevenueModel[]>([]);
@@ -15,14 +18,14 @@ export const Revenue: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    rev_date: new Date().toISOString().split('T')[0],
-    amount: '',
-    code: '',
-    receipt_no: '',
-    customer_id: '',
-    revtype_id: '',
-    quote_id: '',
-    notes: ''
+    rev_date: new Date().toISOString().split("T")[0],
+    amount: "",
+    code: "",
+    receipt_no: "",
+    customer_id: "",
+    revtype_id: "",
+    quote_id: "",
+    notes: "",
   });
   const [showForm, setShowForm] = useState(false);
   const navigate = useNavigate();
@@ -35,7 +38,7 @@ export const Revenue: React.FC = () => {
       const [revenuesData, customersData, typesData] = await Promise.all([
         financeService.getAllRevenue(),
         customerService.getAll(),
-        settingsService.getRevenueTypes()
+        settingsService.getRevenueTypes(),
       ]);
 
       setRevenues(revenuesData || []);
@@ -58,14 +61,14 @@ export const Revenue: React.FC = () => {
     setShowForm(true);
     if (!isEditing) {
       setFormData({
-        rev_date: new Date().toISOString().split('T')[0],
-        amount: '',
-        code: '', // Auto-generated
-        receipt_no: '',
-        customer_id: customers.length > 0 ? customers[0].customer_id : '',
-        revtype_id: revenueTypes.length > 0 ? revenueTypes[0].revtype_id : '',
-        quote_id: '',
-        notes: ''
+        rev_date: new Date().toISOString().split("T")[0],
+        amount: "",
+        code: "", // Auto-generated
+        receipt_no: "",
+        customer_id: customers.length > 0 ? customers[0].customer_id : "",
+        revtype_id: revenueTypes.length > 0 ? revenueTypes[0].revtype_id : "",
+        quote_id: "",
+        notes: "",
       });
     }
   };
@@ -74,18 +77,25 @@ export const Revenue: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.rev_date || !formData.amount || !formData.customer_id || !formData.revtype_id) {
-      toast.error('التاريخ والمبلغ والعميل ونوع الإيراد مطلوبة');
+    if (
+      !formData.rev_date ||
+      !formData.amount ||
+      !formData.customer_id ||
+      !formData.revtype_id
+    ) {
+      toast.error("التاريخ والمبلغ والعميل ونوع الإيراد مطلوبة");
       return;
     }
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      toast.error('المبلغ يجب أن يكون رقماً موجباً');
+      toast.error("المبلغ يجب أن يكون رقماً موجباً");
       return;
     }
 
-    const loadingToast = toast.loading(isEditing ? 'جاري التحديث...' : 'جاري الإضافة...');
+    const loadingToast = toast.loading(
+      isEditing ? "جاري التحديث..." : "جاري الإضافة...",
+    );
 
     try {
       if (isEditing && currentId !== null) {
@@ -93,7 +103,6 @@ export const Revenue: React.FC = () => {
         await financeService.updateRevenue(currentId, {
           rev_date: formData.rev_date,
           amount,
-          code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
           revtype_id: formData.revtype_id,
@@ -101,40 +110,41 @@ export const Revenue: React.FC = () => {
           notes: formData.notes || null,
         });
 
-        toast.success('تم تحديث الإيراد بنجاح', { id: loadingToast });
+        toast.success("تم تحديث الإيراد بنجاح", { id: loadingToast });
       } else {
         // Insert new revenue
         await financeService.createRevenue({
           rev_date: formData.rev_date,
           amount,
-          code: formData.code || undefined,
           receipt_no: formData.receipt_no || null,
           customer_id: formData.customer_id,
           revtype_id: formData.revtype_id,
           quote_id: formData.quote_id ? parseInt(formData.quote_id) : null,
-          notes: formData.notes || null
+          notes: formData.notes || null,
         });
 
-        toast.success('تم إضافة الإيراد بنجاح', { id: loadingToast });
+        toast.success("تم إضافة الإيراد بنجاح", { id: loadingToast });
       }
 
       // Reset form and refresh data
       setFormData({
-        rev_date: new Date().toISOString().split('T')[0],
-        amount: '',
-        code: '',
-        receipt_no: '',
-        customer_id: customers[0]?.customer_id || '',
-        revtype_id: revenueTypes[0]?.revtype_id || '',
-        quote_id: '',
-        notes: ''
+        rev_date: new Date().toISOString().split("T")[0],
+        amount: "",
+        code: "",
+        receipt_no: "",
+        customer_id: customers[0]?.customer_id || "",
+        revtype_id: revenueTypes[0]?.revtype_id || "",
+        quote_id: "",
+        notes: "",
       });
       setShowForm(false);
       setIsEditing(false);
       setCurrentId(null);
       await fetchData();
     } catch (err: any) {
-      toast.error(`حدث خطأ: ${err.message || 'غير معروف'}`, { id: loadingToast });
+      toast.error(`حدث خطأ: ${err.message || "غير معروف"}`, {
+        id: loadingToast,
+      });
       console.error(err);
     }
   };
@@ -146,26 +156,26 @@ export const Revenue: React.FC = () => {
     setFormData({
       rev_date: revenue.rev_date,
       amount: revenue.amount.toString(),
-      code: revenue.code || '',
-      receipt_no: revenue.receipt_no || '',
+      code: revenue.code || "",
+      receipt_no: revenue.receipt_no || "",
       customer_id: revenue.customer_id,
       revtype_id: revenue.revtype_id,
-      quote_id: revenue.quote_id ? revenue.quote_id.toString() : '',
-      notes: revenue.notes || '',
+      quote_id: revenue.quote_id ? revenue.quote_id.toString() : "",
+      notes: revenue.notes || "",
     });
     setShowForm(true);
   };
 
   // Delete revenue
   const handleDelete = async (id: number) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الإيراد؟')) return;
+    if (!confirm("هل أنت متأكد من حذف هذا الإيراد؟")) return;
 
-    const loadingToast = toast.loading('جاري الحذف...');
+    const loadingToast = toast.loading("جاري الحذف...");
 
     try {
       await financeService.deleteRevenue(id);
 
-      toast.success('تم حذف الإيراد بنجاح', { id: loadingToast });
+      toast.success("تم حذف الإيراد بنجاح", { id: loadingToast });
       await fetchData();
     } catch (err: any) {
       toast.error(`حدث خطأ أثناء الحذف: ${err.message}`, { id: loadingToast });
@@ -176,14 +186,14 @@ export const Revenue: React.FC = () => {
   // Cancel form
   const handleCancel = () => {
     setFormData({
-      rev_date: new Date().toISOString().split('T')[0],
-      amount: '',
-      code: '',
-      receipt_no: '',
-      customer_id: customers[0]?.customer_id || '',
-      revtype_id: revenueTypes[0]?.revtype_id || '',
-      quote_id: '',
-      notes: ''
+      rev_date: new Date().toISOString().split("T")[0],
+      amount: "",
+      code: "",
+      receipt_no: "",
+      customer_id: customers[0]?.customer_id || "",
+      revtype_id: revenueTypes[0]?.revtype_id || "",
+      quote_id: "",
+      notes: "",
     });
     setShowForm(false);
     setIsEditing(false);
@@ -192,49 +202,55 @@ export const Revenue: React.FC = () => {
 
   // Format amount
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ar-EG', {
-      style: 'currency',
-      currency: 'EGP',
+    return new Intl.NumberFormat("ar-EG", {
+      style: "currency",
+      currency: "EGP",
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   // Table columns
   const columns = [
     {
-      key: 'code',
-      label: 'الكود',
-      header: 'الكود',
-      render: (revenue: RevenueModel) => <span className="font-mono font-bold text-gray-600">{revenue.code || '-'}</span>
+      key: "code",
+      label: "الكود",
+      header: "الكود",
+      render: (revenue: RevenueModel) => (
+        <span className="font-mono font-bold text-gray-600">
+          {revenue.code || "-"}
+        </span>
+      ),
     },
     {
-      key: 'rev_date',
-      label: 'التاريخ',
-      header: 'التاريخ',
-      render: (revenue: RevenueModel) => formatDate(revenue.rev_date)
+      key: "rev_date",
+      label: "التاريخ",
+      header: "التاريخ",
+      render: (revenue: RevenueModel) => formatDate(revenue.rev_date),
     },
     {
-      key: 'amount',
-      label: 'المبلغ',
-      header: 'المبلغ',
-      render: (revenue: RevenueModel) => formatAmount(revenue.amount)
+      key: "amount",
+      label: "المبلغ",
+      header: "المبلغ",
+      render: (revenue: RevenueModel) => formatAmount(revenue.amount),
     },
     {
-      key: 'customer',
-      label: 'العميل',
-      header: 'العميل',
+      key: "customer",
+      label: "العميل",
+      header: "العميل",
       render: (revenue: RevenueModel) => {
-        const customer = customers.find(c => c.customer_id === revenue.customer_id);
+        const customer = customers.find(
+          (c) => c.customer_id === revenue.customer_id,
+        );
         const name = customer ? customer.name : revenue.customer_id;
         return (
           <Link
@@ -244,29 +260,32 @@ export const Revenue: React.FC = () => {
             {name}
           </Link>
         );
-      }
+      },
     },
     {
-      key: 'type',
-      label: 'النوع',
-      header: 'النوع',
+      key: "type",
+      label: "النوع",
+      header: "النوع",
       render: (revenue: RevenueModel) => {
-        const type = revenueTypes.find(t => t.revtype_id === revenue.revtype_id);
+        const type = revenueTypes.find(
+          (t) => t.revtype_id === revenue.revtype_id,
+        );
         return type ? type.revtype_name : revenue.revtype_id;
-      }
+      },
     },
     {
-      key: 'quote_id',
-      label: 'رقم عرض السعر',
-      header: 'رقم عرض السعر',
-      render: (revenue: RevenueModel) => revenue.quote_id ? `#${revenue.quote_id}` : '-'
+      key: "quote_id",
+      label: "رقم عرض السعر",
+      header: "رقم عرض السعر",
+      render: (revenue: RevenueModel) =>
+        revenue.quote_id ? `#${revenue.quote_id}` : "-",
     },
-    { key: 'receipt_no', label: 'رقم الإيصال', header: 'رقم الإيصال' },
-    { key: 'notes', label: 'ملاحظات', header: 'ملاحظات' },
+    { key: "receipt_no", label: "رقم الإيصال", header: "رقم الإيصال" },
+    { key: "notes", label: "ملاحظات", header: "ملاحظات" },
     {
-      key: 'actions',
-      label: 'الإجراءات',
-      header: 'الإجراءات',
+      key: "actions",
+      label: "الإجراءات",
+      header: "الإجراءات",
       render: (revenue: RevenueModel) => (
         <div className="flex gap-2">
           <Button
@@ -289,15 +308,15 @@ export const Revenue: React.FC = () => {
   ];
 
   // Prepare customer options
-  const customerOptions = customers.map(c => ({
+  const customerOptions = customers.map((c) => ({
     value: c.customer_id,
-    label: c.name
+    label: c.name,
   }));
 
   // Prepare revenue type options
-  const revenueTypeOptions = revenueTypes.map(t => ({
+  const revenueTypeOptions = revenueTypes.map((t) => ({
     value: t.revtype_id,
-    label: t.revtype_name
+    label: t.revtype_name,
   }));
 
   return (
@@ -308,21 +327,21 @@ export const Revenue: React.FC = () => {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#363636',
-            color: '#fff',
-            fontSize: '14px',
-            direction: 'rtl',
+            background: "#363636",
+            color: "#fff",
+            fontSize: "14px",
+            direction: "rtl",
           },
           success: {
             iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
+              primary: "#10b981",
+              secondary: "#fff",
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: "#ef4444",
+              secondary: "#fff",
             },
             duration: 4000,
           },
@@ -333,31 +352,40 @@ export const Revenue: React.FC = () => {
         <Card
           title="إدارة الإيرادات"
           headerAction={
-            <Button onClick={() => {
-              if (!showForm) handleOpenForm();
-              else setShowForm(false);
-            }}>
-              {showForm ? 'إخفاء النموذج' : 'إضافة إيراد جديد'}
+            <Button
+              onClick={() => {
+                if (!showForm) handleOpenForm();
+                else setShowForm(false);
+              }}
+            >
+              {showForm ? "إخفاء النموذج" : "إضافة إيراد جديد"}
             </Button>
           }
         >
           {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form
+              onSubmit={handleSubmit}
+              className="mb-6 p-4 bg-gray-50 rounded-lg"
+            >
               <h3 className="text-lg font-semibold mb-4">
-                {isEditing ? 'تعديل إيراد' : 'إضافة إيراد جديد'}
+                {isEditing ? "تعديل إيراد" : "إضافة إيراد جديد"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="كود الإيراد"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder={isEditing ? formData.code : 'تلقائي (يمكنك الكتابة للتعديل)'}
+                  value={
+                    isEditing ? formData.code || "" : "سيتم التوليد تلقائياً"
+                  }
+                  disabled
+                  helperText="يتم إنشاء الكود تلقائياً من الباك إند"
                 />
                 <Input
                   label="التاريخ *"
                   type="date"
                   value={formData.rev_date}
-                  onChange={(e) => setFormData({ ...formData, rev_date: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rev_date: e.target.value })
+                  }
                   required
                 />
                 <Input
@@ -365,44 +393,56 @@ export const Revenue: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: e.target.value })
+                  }
                   placeholder="0.00"
                   required
                 />
                 <Select
                   label="العميل *"
                   value={formData.customer_id}
-                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, customer_id: e.target.value })
+                  }
                   options={customerOptions}
-                  onAddClick={() => navigate('/customers')}
+                  onAddClick={() => navigate("/customers")}
                   required
                 />
                 <Select
                   label="نوع الإيراد *"
                   value={formData.revtype_id}
-                  onChange={(e) => setFormData({ ...formData, revtype_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, revtype_id: e.target.value })
+                  }
                   options={revenueTypeOptions}
-                  onAddClick={() => navigate('/settings')}
+                  onAddClick={() => navigate("/settings")}
                   required
                 />
                 <Input
                   label="رقم الإيصال"
                   value={formData.receipt_no}
-                  onChange={(e) => setFormData({ ...formData, receipt_no: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, receipt_no: e.target.value })
+                  }
                   placeholder="اختياري"
                 />
                 <Input
                   label="ملاحظات"
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   placeholder="ملاحظات إضافية"
                 />
               </div>
               <div className="flex gap-2 mt-4">
-                <Button type="submit">
-                  {isEditing ? 'تحديث' : 'إضافة'}
-                </Button>
-                <Button type="button" variant="secondary" onClick={handleCancel}>
+                <Button type="submit">{isEditing ? "تحديث" : "إضافة"}</Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCancel}
+                >
                   إلغاء
                 </Button>
               </div>

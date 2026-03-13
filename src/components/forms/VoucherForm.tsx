@@ -57,9 +57,6 @@ export const VoucherForm: React.FC<VoucherFormProps> = ({
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof VoucherFormData, string>> = {};
 
-    if (!validateRequired(formData.voucherNumber)) {
-      newErrors.voucherNumber = getValidationError("رقم السند", "required");
-    }
     if (!validateRequired(formData.recipient)) {
       newErrors.recipient = getValidationError(
         type === "payment" ? "المستفيد" : "العميل",
@@ -92,11 +89,10 @@ export const VoucherForm: React.FC<VoucherFormProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="رقم السند *"
-            value={formData.voucherNumber}
-            onChange={(e) => handleChange("voucherNumber", e.target.value)}
-            error={errors.voucherNumber}
-            placeholder="مثال: PAY-2025-001"
+            label="رقم السند"
+            value={formData.voucherNumber || "سيتم التوليد تلقائياً"}
+            disabled
+            helperText="يتم إنشاء الرقم تلقائياً من الباك إند"
             fullWidth
           />
 

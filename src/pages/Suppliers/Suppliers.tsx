@@ -38,19 +38,6 @@ export const Suppliers: React.FC = () => {
     );
   }, [suppliers, searchTerm]);
 
-  // Generate next supplier ID
-  const generateNextId = () => {
-    if (!Array.isArray(suppliers) || suppliers.length === 0) return "S001";
-    const validIds = suppliers
-      .map((s) => s.supplier_id)
-      .filter((id) => typeof id === "string" && /^S\d+$/.test(id))
-      .map((id) => parseInt(id.substring(1)))
-      .filter((num) => !isNaN(num));
-    if (validIds.length === 0) return "S001";
-    const maxId = Math.max(...validIds);
-    return `S${(maxId + 1).toString().padStart(3, "0")}`;
-  };
-
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true);
@@ -72,7 +59,7 @@ export const Suppliers: React.FC = () => {
     setIsEditing(false);
     setCurrentId(null);
     setFormData({
-      supplier_id: generateNextId(),
+      supplier_id: "",
       name: "",
       contact_person: "",
       email: "",
@@ -125,10 +112,7 @@ export const Suppliers: React.FC = () => {
         await supplierService.update(currentId, payload);
         toast.success("تم تحديث بيانات المورد بنجاح", { id: loadingToast });
       } else {
-        await supplierService.create({
-          supplier_id: formData.supplier_id.trim(),
-          ...payload,
-        });
+        await supplierService.create(payload);
         toast.success("تم إضافة المورد بنجاح", { id: loadingToast });
       }
       setShowModal(false);
@@ -291,13 +275,10 @@ export const Suppliers: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="كود المورد *"
-              value={formData.supplier_id}
-              onChange={(e) =>
-                setFormData({ ...formData, supplier_id: e.target.value })
-              }
-              disabled={isEditing}
-              required
+              label="كود المورد"
+              value={isEditing ? formData.supplier_id : "سيتم التوليد تلقائياً"}
+              disabled
+              helperText="يتم إنشاء الكود تلقائياً من الباك إند"
             />
             <Input
               label="اسم المورد / الشركة *"

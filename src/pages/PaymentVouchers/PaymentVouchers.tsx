@@ -50,20 +50,6 @@ export const PaymentVouchers: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Generate next voucher number
-  const generateNextVoucherNumber = () => {
-    if (vouchers.length === 0) return "PV-2024-001";
-    const validNumbers = vouchers
-      .map((v) => v.voucher_number)
-      .filter((num) => /^PV-\d{4}-\d{3}$/.test(num))
-      .map((num) => parseInt(num.split("-")[2]))
-      .filter((num) => !isNaN(num));
-    if (validNumbers.length === 0) return "PV-2024-001";
-    const maxNum = Math.max(...validNumbers);
-    const year = new Date().getFullYear();
-    return `PV-${year}-${(maxNum + 1).toString().padStart(3, "0")}`;
-  };
-
   const fetchVouchers = async () => {
     try {
       setIsLoading(true);
@@ -101,7 +87,7 @@ export const PaymentVouchers: React.FC = () => {
 
   const handleOpenAdd = () => {
     setFormData({
-      voucher_number: generateNextVoucherNumber(),
+      voucher_number: "",
       voucher_date: new Date().toISOString().split("T")[0],
       amount: "",
       beneficiary_type: "supplier",
@@ -124,8 +110,6 @@ export const PaymentVouchers: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.voucher_number.trim())
-      newErrors.voucher_number = "رقم السند مطلوب";
     if (!formData.voucher_date) newErrors.voucher_date = "تاريخ السند مطلوب";
     if (!formData.amount || parseFloat(formData.amount) <= 0)
       newErrors.amount = "المبلغ يجب أن يكون أكبر من صفر";
@@ -174,7 +158,6 @@ export const PaymentVouchers: React.FC = () => {
     const loadingToast = toast.loading("جاري إنشاء سند الصرف...");
     try {
       const payload: any = {
-        voucher_number: formData.voucher_number.trim(),
         voucher_date: formData.voucher_date,
         amount: parseFloat(formData.amount),
         beneficiary_type: formData.beneficiary_type,
@@ -387,13 +370,10 @@ export const PaymentVouchers: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="رقم السند *"
-              value={formData.voucher_number}
-              onChange={(e) =>
-                setFormData({ ...formData, voucher_number: e.target.value })
-              }
-              error={errors.voucher_number}
-              required
+              label="رقم السند"
+              value="سيتم التوليد تلقائياً"
+              disabled
+              helperText="يتم إنشاء الرقم تلقائياً من الباك إند"
             />
             <Input
               label="تاريخ السند *"
