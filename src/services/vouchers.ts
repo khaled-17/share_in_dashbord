@@ -1,7 +1,4 @@
 import { api } from './api';
-import { supabase } from '../lib/supabase';
-import { APP_CONFIG } from '../config';
-
 export interface CheckDetail {
     id: number;
     check_number: string;
@@ -13,7 +10,6 @@ export interface CheckDetail {
     notes?: string | null;
     created_at: string;
 }
-
 export interface ReceiptVoucher {
     id: number;
     voucher_number: string;
@@ -32,7 +28,6 @@ export interface ReceiptVoucher {
     partner?: any;
     check?: CheckDetail | null;
 }
-
 export interface PaymentVoucher {
     id: number;
     voucher_number: string;
@@ -55,7 +50,6 @@ export interface PaymentVoucher {
     expense_type?: any;
     check?: CheckDetail | null;
 }
-
 export interface VoucherStats {
     total_amount: number;
     total_count: number;
@@ -64,7 +58,6 @@ export interface VoucherStats {
     by_payment_method: Record<string, number>;
     pending_checks: number;
 }
-
 export const receiptVoucherService = {
     getAll: async (params?: {
         start_date?: string;
@@ -72,97 +65,35 @@ export const receiptVoucherService = {
         source_type?: string;
         payment_method?: string;
     }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            let query = supabase
-                .from('receipt_vouchers')
-                .select('*, customer:customers(name), partner:partners(name), check:check_details(*)');
-
-            if (params?.start_date) query = query.gte('voucher_date', params.start_date);
-            if (params?.end_date) query = query.lte('voucher_date', params.end_date);
-            if (params?.source_type) query = query.eq('source_type', params.source_type);
-            if (params?.payment_method) query = query.eq('payment_method', params.payment_method);
-
-            const { data, error } = await query.order('voucher_date', { ascending: false });
-            if (error) throw error;
-            return data as ReceiptVoucher[];
-        }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/receipt-vouchers${queryStr ? `?${  queryStr}` : ''}`);
+        const res = await api.get<any>(`/receipt-vouchers${queryStr ? `?${queryStr}` : ''}`);
         return (res.data ? res.data : res) as ReceiptVoucher[];
     },
-
     getById: async (id: number) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data, error } = await supabase
-                .from('receipt_vouchers')
-                .select('*, customer:customers(*), partner:partners(*), check:check_details(*)')
-                .eq('id', id)
-                .single();
-            if (error) throw error;
-            return data as ReceiptVoucher;
-        }
         const res = await api.get<any>(`/receipt-vouchers/${id}`);
         return (res.data ? res.data : res) as ReceiptVoucher;
     },
-
-    getStats: async (params?: { start_date?: string; end_date?: string }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            // Stats usually require more complex queries; simplified for now
-            const { data, error } = await supabase.from('receipt_vouchers').select('amount, payment_method');
-            if (error) throw error;
-            const total = data.reduce((sum, v) => sum + v.amount, 0);
-            return {
-                total_amount: total,
-                total_count: data.length,
-                by_payment_method: {},
-                pending_checks: 0
-            } as VoucherStats;
-        }
+    getStats: async (params?: {
+        start_date?: string;
+        end_date?: string;
+    }) => {
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/receipt-vouchers/stats/summary${query ? `?${  query}` : ''}`);
+        const res = await api.get<any>(`/receipt-vouchers/stats/summary${query ? `?${query}` : ''}`);
         return (res.data ? res.data : res) as VoucherStats;
     },
-
     create: async (data: any) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data: result, error } = await supabase
-                .from('receipt_vouchers')
-                .insert([data])
-                .select()
-                .single();
-            if (error) throw error;
-            return result as ReceiptVoucher;
-        }
         const res = await api.post<any>('/receipt-vouchers', data);
         return (res.data ? res.data : res) as ReceiptVoucher;
     },
-
     update: async (id: number, data: Partial<Pick<ReceiptVoucher, 'description' | 'received_from'>>) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data: result, error } = await supabase
-                .from('receipt_vouchers')
-                .update(data)
-                .eq('id', id)
-                .select()
-                .single();
-            if (error) throw error;
-            return result as ReceiptVoucher;
-        }
         const res = await api.put<any>(`/receipt-vouchers/${id}`, data);
         return (res.data ? res.data : res) as ReceiptVoucher;
     },
-
     delete: async (id: number) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { error } = await supabase.from('receipt_vouchers').delete().eq('id', id);
-            if (error) throw error;
-            return { message: 'Voucher deleted successfully' };
-        }
         const res = await api.delete<any>(`/receipt-vouchers/${id}`);
         return res;
     },
 };
-
 export const paymentVoucherService = {
     getAll: async (params?: {
         start_date?: string;
@@ -170,96 +101,35 @@ export const paymentVoucherService = {
         beneficiary_type?: string;
         payment_method?: string;
     }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            let query = supabase
-                .from('payment_vouchers')
-                .select('*, supplier:suppliers(name), employee:employees(name), partner:partners(name), check:check_details(*)');
-
-            if (params?.start_date) query = query.gte('voucher_date', params.start_date);
-            if (params?.end_date) query = query.lte('voucher_date', params.end_date);
-            if (params?.beneficiary_type) query = query.eq('beneficiary_type', params.beneficiary_type);
-            if (params?.payment_method) query = query.eq('payment_method', params.payment_method);
-
-            const { data, error } = await query.order('voucher_date', { ascending: false });
-            if (error) throw error;
-            return data as PaymentVoucher[];
-        }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/payment-vouchers${queryStr ? `?${  queryStr}` : ''}`);
+        const res = await api.get<any>(`/payment-vouchers${queryStr ? `?${queryStr}` : ''}`);
         return (res.data ? res.data : res) as PaymentVoucher[];
     },
-
     getById: async (id: number) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data, error } = await supabase
-                .from('payment_vouchers')
-                .select('*, supplier:suppliers(*), employee:employees(*), partner:partners(*), check:check_details(*)')
-                .eq('id', id)
-                .single();
-            if (error) throw error;
-            return data as PaymentVoucher;
-        }
         const res = await api.get<any>(`/payment-vouchers/${id}`);
         return (res.data ? res.data : res) as PaymentVoucher;
     },
-
-    getStats: async (params?: { start_date?: string; end_date?: string }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data, error } = await supabase.from('payment_vouchers').select('amount');
-            if (error) throw error;
-            const total = data.reduce((sum, v) => sum + v.amount, 0);
-            return {
-                total_amount: total,
-                total_count: data.length,
-                by_payment_method: {},
-                pending_checks: 0
-            } as VoucherStats;
-        }
+    getStats: async (params?: {
+        start_date?: string;
+        end_date?: string;
+    }) => {
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/payment-vouchers/stats/summary${query ? `?${  query}` : ''}`);
+        const res = await api.get<any>(`/payment-vouchers/stats/summary${query ? `?${query}` : ''}`);
         return (res.data ? res.data : res) as VoucherStats;
     },
-
     create: async (data: any) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data: result, error } = await supabase
-                .from('payment_vouchers')
-                .insert([data])
-                .select()
-                .single();
-            if (error) throw error;
-            return result as PaymentVoucher;
-        }
         const res = await api.post<any>('/payment-vouchers', data);
         return (res.data ? res.data : res) as PaymentVoucher;
     },
-
     update: async (id: number, data: Partial<Pick<PaymentVoucher, 'description' | 'paid_to'>>) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data: result, error } = await supabase
-                .from('payment_vouchers')
-                .update(data)
-                .eq('id', id)
-                .select()
-                .single();
-            if (error) throw error;
-            return result as PaymentVoucher;
-        }
         const res = await api.put<any>(`/payment-vouchers/${id}`, data);
         return (res.data ? res.data : res) as PaymentVoucher;
     },
-
     delete: async (id: number) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { error } = await supabase.from('payment_vouchers').delete().eq('id', id);
-            if (error) throw error;
-            return { message: 'Voucher deleted successfully' };
-        }
         const res = await api.delete<any>(`/payment-vouchers/${id}`);
         return res;
     },
 };
-
 export interface CheckStats {
     total_count: number;
     total_amount: number;
@@ -274,82 +144,36 @@ export interface CheckStats {
         payment: number;
     };
 }
-
 export const checkService = {
     getAll: async (params?: {
         status?: string;
         start_date?: string;
         end_date?: string;
     }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            let query = supabase.from('check_details').select('*');
-            if (params?.status) query = query.eq('status', params.status);
-            if (params?.start_date) query = query.gte('check_date', params.start_date);
-            if (params?.end_date) query = query.lte('check_date', params.end_date);
-
-            const { data, error } = await query.order('check_date', { ascending: true });
-            if (error) throw error;
-            return data;
-        }
         const queryStr = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/checks${queryStr ? `?${  queryStr}` : ''}`);
+        const res = await api.get<any>(`/checks${queryStr ? `?${queryStr}` : ''}`);
         return (res.data ? res.data : res) as any[];
     },
-
     getById: async (id: number) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data, error } = await supabase.from('check_details').select('*').eq('id', id).single();
-            if (error) throw error;
-            return data;
-        }
         const res = await api.get<any>(`/checks/${id}`);
         return (res.data ? res.data : res) as any;
     },
-
-    updateStatus: async (id: number, data: { status: string; notes?: string }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data: result, error } = await supabase
-                .from('check_details')
-                .update(data)
-                .eq('id', id)
-                .select()
-                .single();
-            if (error) throw error;
-            return result;
-        }
+    updateStatus: async (id: number, data: {
+        status: string;
+        notes?: string;
+    }) => {
         const res = await api.put<any>(`/checks/${id}/status`, data);
         return (res.data ? res.data : res) as any;
     },
-
-    getStats: async (params?: { start_date?: string; end_date?: string }) => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const { data, error } = await supabase.from('check_details').select('status, amount');
-            if (error) throw error;
-            // Simple aggregation for now
-            return {
-                total_count: data.length,
-                total_amount: data.reduce((s, c) => s + c.amount, 0),
-                by_status: { pending: 0, cleared: 0, bounced: 0, cancelled: 0 },
-                by_type: { receipt: 0, payment: 0 }
-            } as CheckStats;
-        }
+    getStats: async (params?: {
+        start_date?: string;
+        end_date?: string;
+    }) => {
         const query = params ? new URLSearchParams(params as any).toString() : '';
-        const res = await api.get<any>(`/checks/stats/summary${query ? `?${  query}` : ''}`);
+        const res = await api.get<any>(`/checks/stats/summary${query ? `?${query}` : ''}`);
         return (res.data ? res.data : res) as CheckStats;
     },
-
     getDueSoon: async () => {
-        if (APP_CONFIG.currentSource === 'supabase') {
-            const today = new Date().toISOString().split('T')[0];
-            const { data, error } = await supabase
-                .from('check_details')
-                .select('*')
-                .eq('status', 'pending')
-                .gte('check_date', today)
-                .limit(5);
-            if (error) throw error;
-            return data;
-        }
         const res = await api.get<any>('/checks/pending/due-soon');
         return (res.data ? res.data : res) as any[];
     },

@@ -1,18 +1,10 @@
 /**
- * Config file to toggle between Backend API and Direct Supabase (Serverless)
+ * App runtime config (API-only mode).
  */
 export const APP_CONFIG = {
-    /**
-     * 💡 HOW TO SWITCH DATA SOURCE:
-     * ----------------------------
-     * - Change to 'api'      => To use local Express server.
-     * - Change to 'supabase' => To use direct Supabase (Serverless).
-     */
-    DATA_SOURCE: 'api' as 'api' | 'supabase',
+  DATA_SOURCE: "api" as const,
 
-    // Automatically detect environment and use appropriate data source
-    get currentSource() {
-        // Force API for all environments to use backend 'cohub'
-        return 'api';
-    }
+  get currentSource() {
+    return "api" as const;
+  },
 };

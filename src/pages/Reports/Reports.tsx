@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Input, Select } from '../../components/ui';
-import toast, { Toaster } from 'react-hot-toast';
-import { reportService } from '../../services/reports';
-import { financeService } from '../../services/finance';
-import { receiptVoucherService, paymentVoucherService } from '../../services/vouchers';
-import { APP_CONFIG } from '../../config';
+import React, { useState, useEffect } from "react";
+import { Card, Button, Input, Select } from "../../components/ui";
+import toast, { Toaster } from "react-hot-toast";
+import { reportService } from "../../services/reports";
+import { financeService } from "../../services/finance";
+import {
+  receiptVoucherService,
+  paymentVoucherService,
+} from "../../services/vouchers";
 
 interface LedgerItem {
   date: string;
@@ -15,9 +17,9 @@ interface LedgerItem {
 }
 
 export const Reports: React.FC = () => {
-  const [dateFrom, setDateFrom] = useState('2025-12-01');
-  const [dateTo, setDateTo] = useState('2025-12-31');
-  const [reportType, setReportType] = useState('all');
+  const [dateFrom, setDateFrom] = useState("2025-12-01");
+  const [dateTo, setDateTo] = useState("2025-12-31");
+  const [reportType, setReportType] = useState("all");
   const [ledgerData, setLedgerData] = useState<LedgerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totals, setTotals] = useState({ debit: 0, credit: 0, balance: 0 });
@@ -26,39 +28,23 @@ export const Reports: React.FC = () => {
     expenses: 0,
     capitalWithdrawn: 0,
     capitalAdded: 0,
-    netProfit: 0
+    netProfit: 0,
   });
 
   const fetchReportData = async () => {
     try {
       setIsLoading(true);
 
-      if (APP_CONFIG.currentSource === 'api') {
-        const response = await reportService.getLedgerReport(dateFrom, dateTo);
-
-        // Filter ledger items if not 'all'
-        let filteredItems = response.ledgerData;
-        if (reportType === 'receipts') {
-          filteredItems = response.ledgerData.filter(item => item.debit > 0 || item.description === 'رصيد أول المدة');
-        } else if (reportType === 'payments') {
-          filteredItems = response.ledgerData.filter(item => item.credit > 0 || item.description === 'رصيد أول المدة');
-        }
-
-        setLedgerData(filteredItems);
-        setBudgetStats(response.budgetStats);
-        setTotals(response.totals);
-        return;
-      }
-
-      // Legacy Supabase loading logic (as a fallback)
+      // Fallback local calculation logic.
       let openingBalance = 0;
 
-      const [allRevenue, allExpenses, allReceiptVouchers, allPaymentVouchers] = await Promise.all([
-        financeService.getAllRevenue(),
-        financeService.getAllExpenses(),
-        receiptVoucherService.getAll(),
-        paymentVoucherService.getAll()
-      ]);
+      const [allRevenue, allExpenses, allReceiptVouchers, allPaymentVouchers] =
+        await Promise.all([
+          financeService.getAllRevenue(),
+          financeService.getAllExpenses(),
+          receiptVoucherService.getAll(),
+          paymentVoucherService.getAll(),
+        ]);
 
       const revenues = allRevenue || [];
       const expenses = allExpenses || [];
@@ -66,22 +52,43 @@ export const Reports: React.FC = () => {
       const paymentVouchers = allPaymentVouchers || [];
 
       // Logic for opening balance and transformations (mostly unchanged)
-      const prevRevenueTotal = revenues.filter((item: any) => item.rev_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-      const prevReceiptsTotal = receiptVouchers.filter((item: any) => item.voucher_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-      const prevExpensesTotal = expenses.filter((item: any) => item.exp_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
-      const prevPaymentsTotal = paymentVouchers.filter((item: any) => item.voucher_date < dateFrom).reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevRevenueTotal = revenues
+        .filter((item: any) => item.rev_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevReceiptsTotal = receiptVouchers
+        .filter((item: any) => item.voucher_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevExpensesTotal = expenses
+        .filter((item: any) => item.exp_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+      const prevPaymentsTotal = paymentVouchers
+        .filter((item: any) => item.voucher_date < dateFrom)
+        .reduce((sum: number, item: any) => sum + Number(item.amount), 0);
 
-      openingBalance = (prevRevenueTotal + prevReceiptsTotal) - (prevExpensesTotal + prevPaymentsTotal);
+      openingBalance =
+        prevRevenueTotal +
+        prevReceiptsTotal -
+        (prevExpensesTotal + prevPaymentsTotal);
 
-      let currentRevenue = revenues.filter((item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo);
-      let currentReceipts = receiptVouchers.filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
-      let currentExpenses = expenses.filter((item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo);
-      let currentPayments = paymentVouchers.filter((item: any) => item.voucher_date >= dateFrom && item.voucher_date <= dateTo);
+      let currentRevenue = revenues.filter(
+        (item: any) => item.rev_date >= dateFrom && item.rev_date <= dateTo,
+      );
+      let currentReceipts = receiptVouchers.filter(
+        (item: any) =>
+          item.voucher_date >= dateFrom && item.voucher_date <= dateTo,
+      );
+      let currentExpenses = expenses.filter(
+        (item: any) => item.exp_date >= dateFrom && item.exp_date <= dateTo,
+      );
+      let currentPayments = paymentVouchers.filter(
+        (item: any) =>
+          item.voucher_date >= dateFrom && item.voucher_date <= dateTo,
+      );
 
-      if (reportType === 'receipts') {
+      if (reportType === "receipts") {
         currentExpenses = [];
         currentPayments = [];
-      } else if (reportType === 'payments') {
+      } else if (reportType === "payments") {
         currentRevenue = [];
         currentReceipts = [];
       }
@@ -89,60 +96,81 @@ export const Reports: React.FC = () => {
       const transformed: LedgerItem[] = [
         ...currentRevenue.map((item: any) => ({
           date: item.rev_date,
-          description: `إيراد: ${item.customer?.name || 'غير محدد'} - ${item.notes || ''}`,
+          description: `إيراد: ${item.customer?.name || "غير محدد"} - ${item.notes || ""}`,
           debit: Number(item.amount),
           credit: 0,
-          balance: 0
+          balance: 0,
         })),
         ...currentReceipts.map((item: any) => ({
           date: item.voucher_date,
-          description: `سند قبض ${item.voucher_number}: ${item.received_from} - ${item.description || ''}`,
+          description: `سند قبض ${item.voucher_number}: ${item.received_from} - ${item.description || ""}`,
           debit: Number(item.amount),
           credit: 0,
-          balance: 0
+          balance: 0,
         })),
         ...currentExpenses.map((item: any) => ({
           date: item.exp_date,
-          description: `مصروف: ${item.supplier?.name || 'غير محدد'} - ${item.notes || ''}`,
+          description: `مصروف: ${item.supplier?.name || "غير محدد"} - ${item.notes || ""}`,
           debit: 0,
           credit: Number(item.amount),
-          balance: 0
+          balance: 0,
         })),
         ...currentPayments.map((item: any) => ({
           date: item.voucher_date,
           description: `سند صرف ${item.voucher_number}: ${item.paid_to || item.received_from}`,
           debit: 0,
           credit: Number(item.amount),
-          balance: 0
-        }))
+          balance: 0,
+        })),
       ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       let runningBalance = openingBalance;
       const final = [
-        { date: dateFrom, description: 'رصيد أول المدة', debit: 0, credit: 0, balance: openingBalance },
-        ...transformed.map(i => {
+        {
+          date: dateFrom,
+          description: "رصيد أول المدة",
+          debit: 0,
+          credit: 0,
+          balance: openingBalance,
+        },
+        ...transformed.map((i) => {
           runningBalance += i.debit - i.credit;
           return { ...i, balance: runningBalance };
-        })
+        }),
       ];
 
       setLedgerData(final);
       setTotals({
         debit: transformed.reduce((s, i) => s + i.debit, 0),
         credit: transformed.reduce((s, i) => s + i.credit, 0),
-        balance: runningBalance
+        balance: runningBalance,
       });
 
       setBudgetStats({
-        sales: currentRevenue.reduce((sum, item) => sum + Number(item.amount), 0),
-        expenses: currentExpenses.reduce((sum, item) => sum + Number(item.amount), 0),
-        capitalAdded: currentReceipts.filter((item: any) => item.source_type === 'partner_capital' || item.partner_id).reduce((sum, item) => sum + Number(item.amount), 0),
-        capitalWithdrawn: currentPayments.filter((item: any) => item.beneficiary_type === 'partner_withdrawal' || item.partner_id).reduce((sum, item) => sum + Number(item.amount), 0),
-        netProfit: 0
+        sales: currentRevenue.reduce(
+          (sum, item) => sum + Number(item.amount),
+          0,
+        ),
+        expenses: currentExpenses.reduce(
+          (sum, item) => sum + Number(item.amount),
+          0,
+        ),
+        capitalAdded: currentReceipts
+          .filter(
+            (item: any) =>
+              item.source_type === "partner_capital" || item.partner_id,
+          )
+          .reduce((sum, item) => sum + Number(item.amount), 0),
+        capitalWithdrawn: currentPayments
+          .filter(
+            (item: any) =>
+              item.beneficiary_type === "partner_withdrawal" || item.partner_id,
+          )
+          .reduce((sum, item) => sum + Number(item.amount), 0),
+        netProfit: 0,
       });
-
     } catch (err: any) {
-      toast.error(`فشل في تحميل التقرير: ${  err.message}`);
+      toast.error(`فشل في تحميل التقرير: ${err.message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -163,24 +191,40 @@ export const Reports: React.FC = () => {
       <Card title="الميزانية العامة والربحية">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-            <p className="text-gray-500 text-sm mb-1">إجمالي المبيعات (العملاء)</p>
-            <p className="text-xl font-bold text-green-700">{budgetStats.sales.toLocaleString()} ج.م</p>
+            <p className="text-gray-500 text-sm mb-1">
+              إجمالي المبيعات (العملاء)
+            </p>
+            <p className="text-xl font-bold text-green-700">
+              {budgetStats.sales.toLocaleString()} ج.م
+            </p>
           </div>
           <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-            <p className="text-gray-500 text-sm mb-1">إجمالي المصروفات (الموردين)</p>
-            <p className="text-xl font-bold text-red-700">{budgetStats.expenses.toLocaleString()} ج.م</p>
+            <p className="text-gray-500 text-sm mb-1">
+              إجمالي المصروفات (الموردين)
+            </p>
+            <p className="text-xl font-bold text-red-700">
+              {budgetStats.expenses.toLocaleString()} ج.م
+            </p>
           </div>
           <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
             <p className="text-gray-500 text-sm mb-1">زيادة رأس المال</p>
-            <p className="text-xl font-bold text-purple-700">{budgetStats.capitalAdded.toLocaleString()} ج.م</p>
+            <p className="text-xl font-bold text-purple-700">
+              {budgetStats.capitalAdded.toLocaleString()} ج.م
+            </p>
           </div>
           <div className="p-4 bg-orange-50 rounded-lg border border-orange-100">
             <p className="text-gray-500 text-sm mb-1">المسحوبات</p>
-            <p className="text-xl font-bold text-orange-700">{budgetStats.capitalWithdrawn.toLocaleString()} ج.م</p>
+            <p className="text-xl font-bold text-orange-700">
+              {budgetStats.capitalWithdrawn.toLocaleString()} ج.م
+            </p>
           </div>
-          <div className={`p-4 rounded-lg border ${budgetStats.netProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-200'}`}>
+          <div
+            className={`p-4 rounded-lg border ${budgetStats.netProfit >= 0 ? "bg-blue-50 border-blue-100" : "bg-red-50 border-red-200"}`}
+          >
             <p className="text-gray-500 text-sm mb-1">صافي الربح / الخسارة</p>
-            <p className={`text-xl font-bold ${budgetStats.netProfit >= 0 ? 'text-blue-700' : 'text-red-700'}`}>
+            <p
+              className={`text-xl font-bold ${budgetStats.netProfit >= 0 ? "text-blue-700" : "text-red-700"}`}
+            >
               {budgetStats.netProfit.toLocaleString()} ج.م
             </p>
           </div>
@@ -192,14 +236,24 @@ export const Reports: React.FC = () => {
         <Card hover>
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full bg-green-100">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 11l5-5m0 0l5 5m-5-5v12"
+                />
               </svg>
             </div>
             <div>
               <p className="text-sm text-gray-600">إجمالي المقبوضات</p>
               <p className="text-2xl font-bold text-green-600">
-                {totals.debit.toLocaleString('ar-EG')} ج.م
+                {totals.debit.toLocaleString("ar-EG")} ج.م
               </p>
             </div>
           </div>
@@ -208,14 +262,24 @@ export const Reports: React.FC = () => {
         <Card hover>
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full bg-red-100">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 13l-5 5m0 0l-5-5m5 5V6"
+                />
               </svg>
             </div>
             <div>
               <p className="text-sm text-gray-600">إجمالي المصروفات</p>
               <p className="text-2xl font-bold text-red-600">
-                {totals.credit.toLocaleString('ar-EG')} ج.م
+                {totals.credit.toLocaleString("ar-EG")} ج.م
               </p>
             </div>
           </div>
@@ -224,14 +288,24 @@ export const Reports: React.FC = () => {
         <Card hover>
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full bg-blue-100">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-8 h-8 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div>
               <p className="text-sm text-gray-600">صافي الحركة</p>
               <p className="text-2xl font-bold text-blue-600">
-                {(totals.debit - totals.credit).toLocaleString('ar-EG')} ج.م
+                {(totals.debit - totals.credit).toLocaleString("ar-EG")} ج.م
               </p>
             </div>
           </div>
@@ -240,14 +314,24 @@ export const Reports: React.FC = () => {
         <Card hover>
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full bg-purple-100">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <svg
+                className="w-8 h-8 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
               </svg>
             </div>
             <div>
               <p className="text-sm text-gray-600">الرصيد النهائي</p>
               <p className="text-2xl font-bold text-purple-600">
-                {totals.balance.toLocaleString('ar-EG')} ج.م
+                {totals.balance.toLocaleString("ar-EG")} ج.م
               </p>
             </div>
           </div>
@@ -276,9 +360,9 @@ export const Reports: React.FC = () => {
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
             options={[
-              { value: 'all', label: 'جميع العمليات' },
-              { value: 'receipts', label: 'المقبوضات فقط' },
-              { value: 'payments', label: 'المصروفات فقط' },
+              { value: "all", label: "جميع العمليات" },
+              { value: "receipts", label: "المقبوضات فقط" },
+              { value: "payments", label: "المصروفات فقط" },
             ]}
             fullWidth
           />
@@ -291,24 +375,60 @@ export const Reports: React.FC = () => {
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   جاري البحث...
                 </span>
               ) : (
                 <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                   بحث
                 </>
               )}
             </Button>
             <Button variant="outline">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </Button>
           </div>
@@ -321,39 +441,67 @@ export const Reports: React.FC = () => {
         subtitle={`من ${dateFrom} إلى ${dateTo}`}
         headerAction={
           <div className="flex gap-2">
-            <Button variant="success" size="sm" onClick={() => {
-              // Export to CSV
-              const csvData = [
-                ['التاريخ', 'البيان', 'مدين', 'دائن', 'الرصيد'],
-                ...ledgerData.map(row => [
-                  row.date,
-                  `"${row.description.replace(/"/g, '""')}"`, // Escape quotes
-                  row.debit,
-                  row.credit,
-                  row.balance
-                ]),
-                ['الإجمالي', '', totals.debit, totals.credit, totals.balance]
-              ];
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => {
+                // Export to CSV
+                const csvData = [
+                  ["التاريخ", "البيان", "مدين", "دائن", "الرصيد"],
+                  ...ledgerData.map((row) => [
+                    row.date,
+                    `"${row.description.replace(/"/g, '""')}"`, // Escape quotes
+                    row.debit,
+                    row.credit,
+                    row.balance,
+                  ]),
+                  ["الإجمالي", "", totals.debit, totals.credit, totals.balance],
+                ];
 
-              const csvContent = `data:text/csv;charset=utf-8,\uFEFF${
-                 csvData.map(e => e.join(",")).join("\n")}`;
+                const csvContent = `data:text/csv;charset=utf-8,\uFEFF${csvData
+                  .map((e) => e.join(","))
+                  .join("\n")}`;
 
-              const encodedUri = encodeURI(csvContent);
-              const link = document.createElement("a");
-              link.setAttribute("href", encodedUri);
-              link.setAttribute("download", `report_${dateFrom}_${dateTo}.csv`);
-              document.body.appendChild(link); // Required for FF
-              link.click();
-              document.body.removeChild(link);
-            }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute(
+                  "download",
+                  `report_${dateFrom}_${dateTo}.csv`,
+                );
+                document.body.appendChild(link); // Required for FF
+                link.click();
+                document.body.removeChild(link);
+              }}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               تصدير Excel (CSV)
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
               </svg>
               طباعة
             </Button>
@@ -364,35 +512,58 @@ export const Reports: React.FC = () => {
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b-2 border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase">التاريخ</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase">البيان</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">مدين</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">دائن</th>
-                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">الرصيد</th>
+                <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                  التاريخ
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                  البيان
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">
+                  مدين
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">
+                  دائن
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase">
+                  الرصيد
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     جاري تحميل البيانات...
                   </td>
                 </tr>
               ) : ledgerData.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     لا توجد بيانات في هذه الفترة
                   </td>
                 </tr>
               ) : (
                 ledgerData.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{row.description}</td>
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {row.date}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {row.description}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {row.debit > 0 ? (
                         <span className="font-semibold text-green-600">
-                          {row.debit.toLocaleString('ar-EG')} ج.م
+                          {row.debit.toLocaleString("ar-EG")} ج.م
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -401,7 +572,7 @@ export const Reports: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       {row.credit > 0 ? (
                         <span className="font-semibold text-red-600">
-                          {row.credit.toLocaleString('ar-EG')} ج.م
+                          {row.credit.toLocaleString("ar-EG")} ج.م
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -409,7 +580,7 @@ export const Reports: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                       <span className="font-bold text-blue-600">
-                        {row.balance.toLocaleString('ar-EG')} ج.م
+                        {row.balance.toLocaleString("ar-EG")} ج.م
                       </span>
                     </td>
                   </tr>
@@ -418,15 +589,17 @@ export const Reports: React.FC = () => {
               {/* Totals Row */}
               {!isLoading && ledgerData.length > 0 && (
                 <tr className="bg-primary-50 font-bold border-t-2 border-primary-200">
-                  <td className="px-6 py-4" colSpan={2}>الإجمالي</td>
+                  <td className="px-6 py-4" colSpan={2}>
+                    الإجمالي
+                  </td>
                   <td className="px-6 py-4 text-center text-green-700">
-                    {totals.debit.toLocaleString('ar-EG')} ج.م
+                    {totals.debit.toLocaleString("ar-EG")} ج.م
                   </td>
                   <td className="px-6 py-4 text-center text-red-700">
-                    {totals.credit.toLocaleString('ar-EG')} ج.م
+                    {totals.credit.toLocaleString("ar-EG")} ج.م
                   </td>
                   <td className="px-6 py-4 text-center text-blue-700">
-                    {totals.balance.toLocaleString('ar-EG')} ج.م
+                    {totals.balance.toLocaleString("ar-EG")} ج.م
                   </td>
                 </tr>
               )}
