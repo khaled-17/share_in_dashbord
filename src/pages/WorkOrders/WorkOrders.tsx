@@ -15,7 +15,6 @@ export const WorkOrders: React.FC = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    order_code: "",
     quotation_id: "",
     customer_id: "",
   });
@@ -57,7 +56,7 @@ export const WorkOrders: React.FC = () => {
       });
       toast.success("تم إضافة أمر التشغيل بنجاح", { id: loadingToast });
       setShowForm(false);
-      setFormData({ order_code: "", quotation_id: "", customer_id: "" });
+      setFormData({ quotation_id: "", customer_id: "" });
       await fetchData();
     } catch (err: any) {
       toast.error(`حدث خطأ: ${err.message}`, { id: loadingToast });
