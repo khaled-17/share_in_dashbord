@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, Button, Input, Select } from "../../components/ui";
 import toast, { Toaster } from "react-hot-toast";
 import { reportService } from "../../services/reports";
@@ -17,6 +18,7 @@ interface LedgerItem {
 }
 
 export const Reports: React.FC = () => {
+  const navigate = useNavigate();
   const [dateFrom, setDateFrom] = useState("2025-12-01");
   const [dateTo, setDateTo] = useState("2025-12-31");
   const [reportType, setReportType] = useState("all");
@@ -364,6 +366,7 @@ export const Reports: React.FC = () => {
               { value: "receipts", label: "المقبوضات فقط" },
               { value: "payments", label: "المصروفات فقط" },
             ]}
+            onAddClick={() => navigate("/settings")}
             fullWidth
           />
           <div className="flex items-end gap-2">
